@@ -4,6 +4,9 @@
 #include <linux/of.h>
 #include <linux/of_device.h>
 #include <linux/fs.h>
+#include <linux/printk.h>
+
+
 
 #define DRIVER_NAME			"MyDriver"
 
@@ -55,12 +58,43 @@ static ssize_t clear_show(struct class *class,
 	return i;
 }
 
+static int ledSolid_show(struct class *class,
+	                      struct class_attribute *attr, char *buf)
+{
+	int i = 0;
+	dev_info(dev, "in solid led");
+	printk("solid led");	
+
+	return i;
+}
+static int ledBlink_show(struct class *class,
+	                      struct class_attribute *attr, char *buf)
+{
+	int i = 0;
+	dev_info(dev, "in ledBlink");
+	printk("ledBlink");	
+
+	return i;
+}
+
+static int ShowCount_show(struct class *class,
+	                      struct class_attribute *attr, char *buf)
+{
+	int i = 0;
+	dev_info(dev, "in show");
+	printk("show");	
+
+	return i;
+}
 
 CLASS_ATTR_RO(start);
 CLASS_ATTR_RO(stop);
 CLASS_ATTR_RO(clear);
+CLASS_ATTR_RO(ledSolid);
+CLASS_ATTR_RO(ledBlink);
+CLASS_ATTR_RO(ShowCount);
 
-static void make_rootfs_entry(void)
+static void make_sysfs_entry(void)
 {
 	struct class *sysFS;
 	
@@ -73,6 +107,9 @@ static void make_rootfs_entry(void)
 		class_create_file(sysFS, &class_attr_start);
 		class_create_file(sysFS, &class_attr_stop);
 		class_create_file(sysFS, &class_attr_clear);
+		class_create_file(sysFS, &class_attr_ledSolid);
+		class_create_file(sysFS, &class_attr_ledBlink);
+		class_create_file(sysFS, &class_attr_ShowCount);
 
 		sys_FS = sysFS;
 
@@ -123,7 +160,7 @@ static int  Initialize(struct platform_device *pDev){
 
 
 
-  //make_rootfs_entry();
+  make_sysfs_entry();
 	
 
   dev_info(dev, "Inited");
@@ -135,6 +172,9 @@ static int Deinitialize(struct platform_device *pDev){
     class_remove_file(sys_FS, &class_attr_start);
     class_remove_file(sys_FS, &class_attr_stop);
     class_remove_file(sys_FS, &class_attr_clear);
+    class_remove_file(sys_FS,  &class_attr_ledSolid);
+	class_remove_file(sys_FS,  &class_attr_ledBlink);
+	class_remove_file(sys_FS,  &class_attr_ShowCount);
     class_destroy(sys_FS);
 
 
@@ -169,30 +209,6 @@ module_platform_driver(my_driver);
 
 
 
-
-
-
-
-
-// static struct of_device_id interrupts_of_match[] = {
-//   { .compatible = "MaGol,testDRV", },
-//     {}
-//   };
-// MODULE_DEVICE_TABLE(of, interrupts_of_match);
-
-
-// static struct platform_driver MyInterrupts_driver = {
-//   .probe = Initialize,
-//   .remove = Deinitialize,
-//   .driver = {
-//     .name = "DRIVER_NAME",
-//     .owner = THIS_MODULE,
-//     .of_match_table = interrupts_of_match,
-//   },
-// };
-
-// module_init(Initialize);
-// module_exit(Deinitialize);
 
 
 MODULE_LICENSE("GPL");
