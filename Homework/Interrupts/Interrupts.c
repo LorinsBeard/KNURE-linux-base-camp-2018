@@ -8,6 +8,8 @@
 #include <linux/leds.h>
 #include <linux/interrupt.h>
 #include <linux/ctype.h>
+#include <linux/gpio.h>
+#include <linux/of_gpio.h>
 
 
 #define DRIVER_NAME	  "MyDriver"
@@ -17,12 +19,22 @@
 #define BUTTON_SW4_IRQ 117
 
 
+typedef struct {
+	struct device       *dev;
+    struct class        *sys_FS;
+    
+    struct gpio_desc    *LED_gpiod;
 
-static struct device       *dev;
-static struct class        *sys_FS;
+	struct led_trigger *led;
+
+}myOBJs_t;
+
+
 static u8                  ledState;
 static u8                  countOfInterrupt;
 static bool                isCalculateStatisticAppruved;
+static int                 sw4_interruptID;
+static myOBJs_t            obj_s;
 
 
 
@@ -30,16 +42,12 @@ static bool                isCalculateStatisticAppruved;
 static const struct of_device_id my_drv_match[];
 
 
-static int  sw4_interruptID = 0;
-//module_param( irq, int, S_IRUGO );
-
-
 static int startCount_show(struct class *class,
 	                      struct class_attribute *attr, char *buf)
 {
 	int i = 0;
     isCalculateStatisticAppruved  = true;
-    dev_info(dev, "Interrupt of button has enable");	
+    dev_info(obj_s.dev, "Interrupt of button has enable");	
 	return i;
 }
 
@@ -48,7 +56,7 @@ static int stopCount_show(struct class *class,
 {
 	int i = 0;
     isCalculateStatisticAppruved = false;
-	dev_info(dev, "Interrupt of button has disenable");
+	dev_info(obj_s.dev, "Interrupt of button has disenable");
 	return i;
 }
 
@@ -57,7 +65,7 @@ static int clearStatistic_show(struct class *class,
 {
 	int i = 0;	
 	countOfInterrupt = 0;
-    dev_info(dev,"Interrupts count equal %d \n", countOfInterrupt);
+    dev_info(obj_s.dev,"Interrupts count equal %d \n", countOfInterrupt);
 
 	return i;
 }
@@ -66,16 +74,16 @@ static int ledSolid_show(struct class *class,
 	                      struct class_attribute *attr, char *buf)
 {
 	int i = 0;
-	dev_info(dev, "in solid led");
+	dev_info(obj_s.dev, "in solid led");
 
     u8 state;
     if(ledState){
-       state = LED_OFF;
+       state = 0; //LED_OFF;
     }else{
-       state = LED_FULL;
+       state = 1; //LED_FULL;
     }
     ledState = !ledState;
-	 
+	gpiod_set_value(obj_s.LED_gpiod, state);
 
 	return i;
 }
@@ -83,7 +91,7 @@ static int ledBlink_show(struct class *class,
 	                      struct class_attribute *attr, char *buf)
 {
 	int i = 0;
-	dev_info(dev, "in ledBlink");
+	dev_info(obj_s.dev, "in ledBlink");
 
 	return i;
 }
@@ -91,7 +99,7 @@ static int ledBlink_show(struct class *class,
 static int ShowCount_show(struct class *class,
 	                      struct class_attribute *attr, char *buf)
 {	
-	dev_info(dev,"Interrupts count equal %d \n", countOfInterrupt);
+	dev_info(obj_s.dev,"Interrupts count equal %d \n", countOfInterrupt);
 	return 0;
 }
 
@@ -109,7 +117,7 @@ static void make_sysfs_entry(void)
 	sysFS = class_create(THIS_MODULE, ROOTFS_NAME);
 
 	if (IS_ERR(sysFS)){
-		dev_err(dev, "bad class create\n");
+		dev_err(obj_s.dev, "bad class create\n");
 	}
 	else{
 		class_create_file(sysFS, &class_attr_startCount);
@@ -119,9 +127,9 @@ static void make_sysfs_entry(void)
 		class_create_file(sysFS, &class_attr_ledBlink);
 		class_create_file(sysFS, &class_attr_ShowCount);
 
-		sys_FS = sysFS;
+		obj_s.sys_FS = sysFS;
 
-		dev_info(dev, "sys class created = %s \n", ROOTFS_NAME);
+		dev_info(obj_s.dev, "sys class created = %s \n", ROOTFS_NAME);
 	}
 }
 
@@ -129,7 +137,13 @@ static void make_sysfs_entry(void)
 static irqreturn_t Button_sw4_interrupt( int irq, void *dev_id ) {
    if(isCalculateStatisticAppruved){
    		countOfInterrupt += 1;
-   }    
+
+		u8 state = 0;
+   		if((countOfInterrupt % 2) == 0){
+   			state = 1;
+   		}
+   		gpiod_set_value(obj_s.LED_gpiod, state);
+   }
 
    return IRQ_NONE;
 }
@@ -142,32 +156,42 @@ static int  Initialize(struct platform_device *pDev){
 	
 
     const struct of_device_id *match;
-	const char   *name;
-    struct device_node *np;
+	const char                *name;
+    struct device_node        *np;
 
 
-	dev = &pDev->dev;
+	obj_s.dev = &pDev->dev;
     
-	match = of_match_device(of_match_ptr(my_drv_match), dev);
+	match = of_match_device(of_match_ptr(my_drv_match), obj_s.dev);
 	if (!match) {
-		dev_err(dev, "failed of_match_device()\n");
+		dev_err(obj_s.dev, "failed of_match_device()\n");
 		return -EINVAL;
 	}
 
     np = pDev->dev.of_node;
     if (np) {
 		if (!of_property_read_string(np, "label", &name))
-			dev_info(dev, "label = %s\n", name);
+			dev_info(obj_s.dev, "label = %s\n", name);
 
 		if (np->name)
-			dev_info(dev, "np->name = %s\n", np->name);
+			dev_info(obj_s.dev, "np->name = %s\n", np->name);
+
+		obj_s.LED_gpiod = devm_gpiod_get(obj_s.dev, "led", GPIOD_OUT_HIGH);
+		 if (IS_ERR(obj_s.LED_gpiod)) {
+		 	dev_err(obj_s.dev, "fail to get led-gpios()\n");
+		 	return EINVAL;
+		 }
+		 if(!gpiod_direction_output(obj_s.LED_gpiod, 1))
+		 	dev_info(obj_s.dev, "led-gpios set as OUT\n");
+
         
 	}
 	else{
-		dev_err(dev, "failed to get device_node\n");
+		dev_err(obj_s.dev, "failed to get device_node\n");
 		return -EINVAL;
 	}
     
+    sw4_interruptID = 0;
     if ( request_irq( BUTTON_SW4_IRQ, Button_sw4_interrupt, IRQF_SHARED, "Button_sw4_interrupt", &sw4_interruptID ) )
       return -1;
 
@@ -175,27 +199,34 @@ static int  Initialize(struct platform_device *pDev){
 
   	isCalculateStatisticAppruved  = true;
   	countOfInterrupt = 0;
+    
+    led_trigger_register_simple(dev_name(obj_s.dev), &obj_s.led );
+    led_trigger_event(obj_s.led, LED_FULL);;
 
+
+    
 
   make_sysfs_entry();
 	
 
-  dev_info(dev, "Inited");
+  dev_info(obj_s.dev, "Inited");
   return 0;
 }
 
 
 static int Deinitialize(struct platform_device *pDev){
-    class_remove_file(sys_FS, &class_attr_startCount);
-    class_remove_file(sys_FS, &class_attr_stopCount);
-    class_remove_file(sys_FS, &class_attr_clearStatistic);
-    class_remove_file(sys_FS,  &class_attr_ledSolid);
-	class_remove_file(sys_FS,  &class_attr_ledBlink);
-	class_remove_file(sys_FS,  &class_attr_ShowCount);
-    class_destroy(sys_FS);
+    class_remove_file(obj_s.sys_FS, &class_attr_startCount);
+    class_remove_file(obj_s.sys_FS, &class_attr_stopCount);
+    class_remove_file(obj_s.sys_FS, &class_attr_clearStatistic);
+    class_remove_file(obj_s.sys_FS,  &class_attr_ledSolid);
+	class_remove_file(obj_s.sys_FS,  &class_attr_ledBlink);
+	class_remove_file(obj_s.sys_FS,  &class_attr_ShowCount);
+    class_destroy(obj_s.sys_FS);
     free_irq( BUTTON_SW4_IRQ, &sw4_interruptID );
     
-    dev_info(dev, "deinetialezed");
+    led_trigger_unregister_simple(obj_s.led);
+
+    dev_info(obj_s.dev, "deinetialezed");
     
     return 0;
 }

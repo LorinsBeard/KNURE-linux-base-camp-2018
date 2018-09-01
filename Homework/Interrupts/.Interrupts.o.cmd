@@ -724,6 +724,90 @@ deps_/home/mgo/Documents/Course/KNURE-linux-base-camp-2018/Homework/Interrupts/I
   arch/arm/include/asm/sections.h \
   include/asm-generic/sections.h \
   include/linux/ctype.h \
+  include/linux/gpio.h \
+    $(wildcard include/config/gpiolib.h) \
+    $(wildcard include/config/arch/have/custom/gpio/h.h) \
+  arch/arm/include/asm/gpio.h \
+    $(wildcard include/config/arch/nr/gpio.h) \
+  include/asm-generic/gpio.h \
+  include/linux/gpio/driver.h \
+    $(wildcard include/config/gpiolib/irqchip.h) \
+    $(wildcard include/config/gpio/generic.h) \
+    $(wildcard include/config/of/gpio.h) \
+  include/linux/irq.h \
+    $(wildcard include/config/generic/irq/effective/aff/mask.h) \
+    $(wildcard include/config/generic/irq/ipi.h) \
+    $(wildcard include/config/irq/domain/hierarchy.h) \
+    $(wildcard include/config/generic/irq/migration.h) \
+    $(wildcard include/config/generic/pending/irq.h) \
+    $(wildcard include/config/hardirqs/sw/resend.h) \
+    $(wildcard include/config/generic/irq/legacy/alloc/hwirq.h) \
+    $(wildcard include/config/generic/irq/legacy.h) \
+    $(wildcard include/config/generic/irq/multi/handler.h) \
+  include/linux/irqhandler.h \
+  include/linux/io.h \
+    $(wildcard include/config/have/arch/huge/vmap.h) \
+    $(wildcard include/config/has/ioport/map.h) \
+    $(wildcard include/config/pci.h) \
+  arch/arm/include/asm/io.h \
+    $(wildcard include/config/need/mach/io/h.h) \
+    $(wildcard include/config/pcmcia/soc/common.h) \
+    $(wildcard include/config/isa.h) \
+    $(wildcard include/config/pccard.h) \
+  include/asm-generic/pci_iomap.h \
+    $(wildcard include/config/no/generic/pci/ioport/map.h) \
+    $(wildcard include/config/generic/pci/iomap.h) \
+  include/xen/xen.h \
+    $(wildcard include/config/xen/pvh.h) \
+    $(wildcard include/config/xen/dom0.h) \
+  include/asm-generic/io.h \
+    $(wildcard include/config/generic/iomap.h) \
+    $(wildcard include/config/virt/to/bus.h) \
+  include/linux/logic_pio.h \
+    $(wildcard include/config/indirect/pio.h) \
+  include/linux/vmalloc.h \
+  include/linux/slab.h \
+    $(wildcard include/config/debug/slab.h) \
+    $(wildcard include/config/failslab.h) \
+    $(wildcard include/config/have/hardened/usercopy/allocator.h) \
+    $(wildcard include/config/slab.h) \
+    $(wildcard include/config/slub.h) \
+  include/linux/kasan.h \
+  arch/arm/include/generated/asm/irq_regs.h \
+  include/asm-generic/irq_regs.h \
+  include/linux/irqdesc.h \
+    $(wildcard include/config/irq/preflow/fasteoi.h) \
+    $(wildcard include/config/generic/irq/debugfs.h) \
+    $(wildcard include/config/handle/domain/irq.h) \
+  arch/arm/include/asm/hw_irq.h \
+  include/linux/irqchip/chained_irq.h \
+  include/linux/irqdomain.h \
+    $(wildcard include/config/irq/domain.h) \
+  include/linux/pinctrl/pinctrl.h \
+    $(wildcard include/config/generic/pinconf.h) \
+  include/linux/seq_file.h \
+  include/linux/cred.h \
+    $(wildcard include/config/debug/credentials.h) \
+    $(wildcard include/config/keys.h) \
+  include/linux/key.h \
+  include/linux/assoc_array.h \
+    $(wildcard include/config/associative/array.h) \
+  include/linux/selinux.h \
+    $(wildcard include/config/security/selinux.h) \
+  include/linux/sched/user.h \
+    $(wildcard include/config/fanotify.h) \
+    $(wildcard include/config/posix/mqueue.h) \
+    $(wildcard include/config/bpf/syscall.h) \
+    $(wildcard include/config/net.h) \
+  include/linux/pinctrl/pinctrl-state.h \
+  include/linux/pinctrl/devinfo.h \
+  include/linux/pinctrl/consumer.h \
+  include/linux/pinctrl/pinconf-generic.h \
+    $(wildcard include/config/debug/fs.h) \
+  include/linux/pinctrl/machine.h \
+  include/linux/gpio/consumer.h \
+    $(wildcard include/config/gpio/sysfs.h) \
+  include/linux/of_gpio.h \
 
 /home/mgo/Documents/Course/KNURE-linux-base-camp-2018/Homework/Interrupts/Interrupts.o: $(deps_/home/mgo/Documents/Course/KNURE-linux-base-camp-2018/Homework/Interrupts/Interrupts.o)
 
