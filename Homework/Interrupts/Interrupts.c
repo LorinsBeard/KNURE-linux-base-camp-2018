@@ -1,59 +1,63 @@
+#include <linux/init.h>
 #include <linux/kernel.h>
 #include <linux/module.h>
 #include <linux/platform_device.h>
 #include <linux/of.h>
 #include <linux/of_device.h>
 #include <linux/fs.h>
-#include <linux/printk.h>
+#include <linux/leds.h>
+#include <linux/interrupt.h>
+#include <linux/ctype.h>
 
 
-
-#define DRIVER_NAME			"MyDriver"
-
-//#define DRIVER_NAME   "My_interrupts_driver"
+#define DRIVER_NAME	  "MyDriver"
 #define ROOTFS_NAME   "My_interrupts"
 
 
-static struct class  *sys_FS;
-static struct device *dev;
+#define BUTTON_SW4_IRQ 117
+
+
+
+static struct device       *dev;
+static struct class        *sys_FS;
+static u8                  ledState;
+static u8                  countOfInterrupt;
+static bool                isCalculateStatisticAppruved;
+
+
 
 
 static const struct of_device_id my_drv_match[];
 
 
+static int  sw4_interruptID = 0;
+//module_param( irq, int, S_IRUGO );
 
 
-
-
-
-
-
-static ssize_t start_show(struct class *class,
+static int startCount_show(struct class *class,
 	                      struct class_attribute *attr, char *buf)
 {
-	ssize_t i = 0;
-	dev_info(dev, "in start");
-	printk("start");	
-
+	int i = 0;
+    isCalculateStatisticAppruved  = true;
+    dev_info(dev, "Interrupt of button has enable");	
 	return i;
 }
 
-static ssize_t stop_show(struct class *class,
+static int stopCount_show(struct class *class,
 	                      struct class_attribute *attr, char *buf)
 {
-	ssize_t i = 0;
-	dev_info(dev, "in stop");
-	printk("stop");	
-
+	int i = 0;
+    isCalculateStatisticAppruved = false;
+	dev_info(dev, "Interrupt of button has disenable");
 	return i;
 }
 
-static ssize_t clear_show(struct class *class,
+static int clearStatistic_show(struct class *class,
 	                      struct class_attribute *attr, char *buf)
 {
-	ssize_t i = 0;
-	dev_info(dev, "in clear");
-	printk("clear");	
+	int i = 0;	
+	countOfInterrupt = 0;
+    dev_info(dev,"Interrupts count equal %d \n", countOfInterrupt);
 
 	return i;
 }
@@ -63,7 +67,15 @@ static int ledSolid_show(struct class *class,
 {
 	int i = 0;
 	dev_info(dev, "in solid led");
-	printk("solid led");	
+
+    u8 state;
+    if(ledState){
+       state = LED_OFF;
+    }else{
+       state = LED_FULL;
+    }
+    ledState = !ledState;
+	 
 
 	return i;
 }
@@ -72,24 +84,20 @@ static int ledBlink_show(struct class *class,
 {
 	int i = 0;
 	dev_info(dev, "in ledBlink");
-	printk("ledBlink");	
 
 	return i;
 }
 
 static int ShowCount_show(struct class *class,
 	                      struct class_attribute *attr, char *buf)
-{
-	int i = 0;
-	dev_info(dev, "in show");
-	printk("show");	
-
-	return i;
+{	
+	dev_info(dev,"Interrupts count equal %d \n", countOfInterrupt);
+	return 0;
 }
 
-CLASS_ATTR_RO(start);
-CLASS_ATTR_RO(stop);
-CLASS_ATTR_RO(clear);
+CLASS_ATTR_RO(startCount);
+CLASS_ATTR_RO(stopCount);
+CLASS_ATTR_RO(clearStatistic);
 CLASS_ATTR_RO(ledSolid);
 CLASS_ATTR_RO(ledBlink);
 CLASS_ATTR_RO(ShowCount);
@@ -104,21 +112,27 @@ static void make_sysfs_entry(void)
 		dev_err(dev, "bad class create\n");
 	}
 	else{
-		class_create_file(sysFS, &class_attr_start);
-		class_create_file(sysFS, &class_attr_stop);
-		class_create_file(sysFS, &class_attr_clear);
+		class_create_file(sysFS, &class_attr_startCount);
+		class_create_file(sysFS, &class_attr_stopCount);
+		class_create_file(sysFS, &class_attr_clearStatistic);
 		class_create_file(sysFS, &class_attr_ledSolid);
 		class_create_file(sysFS, &class_attr_ledBlink);
 		class_create_file(sysFS, &class_attr_ShowCount);
 
 		sys_FS = sysFS;
 
-		dev_info(dev, "sys class created = %s\n", ROOTFS_NAME);
+		dev_info(dev, "sys class created = %s \n", ROOTFS_NAME);
 	}
 }
 
 
+static irqreturn_t Button_sw4_interrupt( int irq, void *dev_id ) {
+   if(isCalculateStatisticAppruved){
+   		countOfInterrupt += 1;
+   }    
 
+   return IRQ_NONE;
+}
 
 
 
@@ -153,11 +167,14 @@ static int  Initialize(struct platform_device *pDev){
 		dev_err(dev, "failed to get device_node\n");
 		return -EINVAL;
 	}
+    
+    if ( request_irq( BUTTON_SW4_IRQ, Button_sw4_interrupt, IRQF_SHARED, "Button_sw4_interrupt", &sw4_interruptID ) )
+      return -1;
 
+  
 
-
-
-
+  	isCalculateStatisticAppruved  = true;
+  	countOfInterrupt = 0;
 
 
   make_sysfs_entry();
@@ -169,15 +186,15 @@ static int  Initialize(struct platform_device *pDev){
 
 
 static int Deinitialize(struct platform_device *pDev){
-    class_remove_file(sys_FS, &class_attr_start);
-    class_remove_file(sys_FS, &class_attr_stop);
-    class_remove_file(sys_FS, &class_attr_clear);
+    class_remove_file(sys_FS, &class_attr_startCount);
+    class_remove_file(sys_FS, &class_attr_stopCount);
+    class_remove_file(sys_FS, &class_attr_clearStatistic);
     class_remove_file(sys_FS,  &class_attr_ledSolid);
 	class_remove_file(sys_FS,  &class_attr_ledBlink);
 	class_remove_file(sys_FS,  &class_attr_ShowCount);
     class_destroy(sys_FS);
-
-
+    free_irq( BUTTON_SW4_IRQ, &sw4_interruptID );
+    
     dev_info(dev, "deinetialezed");
     
     return 0;

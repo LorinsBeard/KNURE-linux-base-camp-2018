@@ -15,8 +15,44 @@ deps_/home/mgo/Documents/Course/KNURE-linux-base-camp-2018/Homework/Interrupts/I
     $(wildcard include/config/optimize/inlining.h) \
     $(wildcard include/config/gcov/kernel.h) \
     $(wildcard include/config/arch/use/builtin/bswap.h) \
-  include/linux/kernel.h \
+  include/linux/init.h \
+    $(wildcard include/config/strict/kernel/rwx.h) \
+    $(wildcard include/config/strict/module/rwx.h) \
+  include/linux/compiler.h \
+    $(wildcard include/config/trace/branch/profiling.h) \
+    $(wildcard include/config/profile/all/branches.h) \
+    $(wildcard include/config/stack/validation.h) \
+    $(wildcard include/config/kasan.h) \
+  include/linux/compiler_types.h \
+  include/uapi/linux/types.h \
+  arch/arm/include/uapi/asm/types.h \
+  include/asm-generic/int-ll64.h \
+  include/uapi/asm-generic/int-ll64.h \
+  arch/arm/include/generated/uapi/asm/bitsperlong.h \
+  include/asm-generic/bitsperlong.h \
+    $(wildcard include/config/64bit.h) \
+  include/uapi/asm-generic/bitsperlong.h \
+  include/uapi/linux/posix_types.h \
+  include/linux/stddef.h \
+  include/uapi/linux/stddef.h \
+  arch/arm/include/uapi/asm/posix_types.h \
+  include/uapi/asm-generic/posix_types.h \
+  arch/arm/include/asm/barrier.h \
+    $(wildcard include/config/cpu/32v6k.h) \
+    $(wildcard include/config/cpu/xsc3.h) \
+    $(wildcard include/config/cpu/fa526.h) \
+    $(wildcard include/config/arm/heavy/mb.h) \
+    $(wildcard include/config/arm/dma/mem/bufferable.h) \
+    $(wildcard include/config/smp.h) \
+  include/asm-generic/barrier.h \
+  include/linux/kasan-checks.h \
+  include/linux/types.h \
+    $(wildcard include/config/have/uid16.h) \
+    $(wildcard include/config/uid16.h) \
     $(wildcard include/config/lbdaf.h) \
+    $(wildcard include/config/arch/dma/addr/t/64bit.h) \
+    $(wildcard include/config/phys/addr/t/64bit.h) \
+  include/linux/kernel.h \
     $(wildcard include/config/preempt/voluntary.h) \
     $(wildcard include/config/debug/atomic/sleep.h) \
     $(wildcard include/config/mmu.h) \
@@ -27,7 +63,6 @@ deps_/home/mgo/Documents/Course/KNURE-linux-base-camp-2018/Homework/Interrupts/I
     $(wildcard include/config/ftrace/mcount/record.h) \
   /usr/lib/gcc-cross/arm-linux-gnueabi/5/include/stdarg.h \
   include/linux/linkage.h \
-  include/linux/compiler_types.h \
   include/linux/stringify.h \
   include/linux/export.h \
     $(wildcard include/config/have/underscore/symbol/prefix.h) \
@@ -37,38 +72,6 @@ deps_/home/mgo/Documents/Course/KNURE-linux-base-camp-2018/Homework/Interrupts/I
     $(wildcard include/config/trim/unused/ksyms.h) \
     $(wildcard include/config/unused/symbols.h) \
   arch/arm/include/asm/linkage.h \
-  include/linux/stddef.h \
-  include/uapi/linux/stddef.h \
-  include/linux/types.h \
-    $(wildcard include/config/have/uid16.h) \
-    $(wildcard include/config/uid16.h) \
-    $(wildcard include/config/arch/dma/addr/t/64bit.h) \
-    $(wildcard include/config/phys/addr/t/64bit.h) \
-    $(wildcard include/config/64bit.h) \
-  include/uapi/linux/types.h \
-  arch/arm/include/uapi/asm/types.h \
-  include/asm-generic/int-ll64.h \
-  include/uapi/asm-generic/int-ll64.h \
-  arch/arm/include/generated/uapi/asm/bitsperlong.h \
-  include/asm-generic/bitsperlong.h \
-  include/uapi/asm-generic/bitsperlong.h \
-  include/uapi/linux/posix_types.h \
-  arch/arm/include/uapi/asm/posix_types.h \
-  include/uapi/asm-generic/posix_types.h \
-  include/linux/compiler.h \
-    $(wildcard include/config/trace/branch/profiling.h) \
-    $(wildcard include/config/profile/all/branches.h) \
-    $(wildcard include/config/stack/validation.h) \
-    $(wildcard include/config/kasan.h) \
-  arch/arm/include/asm/barrier.h \
-    $(wildcard include/config/cpu/32v6k.h) \
-    $(wildcard include/config/cpu/xsc3.h) \
-    $(wildcard include/config/cpu/fa526.h) \
-    $(wildcard include/config/arm/heavy/mb.h) \
-    $(wildcard include/config/arm/dma/mem/bufferable.h) \
-    $(wildcard include/config/smp.h) \
-  include/asm-generic/barrier.h \
-  include/linux/kasan-checks.h \
   include/linux/bitops.h \
   arch/arm/include/asm/bitops.h \
   include/linux/irqflags.h \
@@ -116,9 +119,6 @@ deps_/home/mgo/Documents/Course/KNURE-linux-base-camp-2018/Homework/Interrupts/I
     $(wildcard include/config/printk/nmi.h) \
     $(wildcard include/config/printk.h) \
     $(wildcard include/config/dynamic/debug.h) \
-  include/linux/init.h \
-    $(wildcard include/config/strict/kernel/rwx.h) \
-    $(wildcard include/config/strict/module/rwx.h) \
   include/linux/kern_levels.h \
   include/linux/cache.h \
     $(wildcard include/config/arch/has/cache/line/size.h) \
@@ -690,6 +690,40 @@ deps_/home/mgo/Documents/Course/KNURE-linux-base-camp-2018/Homework/Interrupts/I
   include/linux/projid.h \
   include/uapi/linux/quota.h \
   include/linux/nfs_fs_i.h \
+  include/linux/leds.h \
+    $(wildcard include/config/leds/triggers.h) \
+    $(wildcard include/config/leds/brightness/hw/changed.h) \
+    $(wildcard include/config/leds/trigger/disk.h) \
+    $(wildcard include/config/leds/trigger/mtd.h) \
+    $(wildcard include/config/leds/trigger/camera.h) \
+    $(wildcard include/config/new/leds.h) \
+    $(wildcard include/config/leds/trigger/cpu.h) \
+  include/linux/interrupt.h \
+    $(wildcard include/config/irq/forced/threading.h) \
+    $(wildcard include/config/generic/irq/probe.h) \
+    $(wildcard include/config/proc/fs.h) \
+    $(wildcard include/config/irq/timings.h) \
+  include/linux/irqreturn.h \
+  include/linux/irqnr.h \
+  include/uapi/linux/irqnr.h \
+  include/linux/hardirq.h \
+  include/linux/ftrace_irq.h \
+    $(wildcard include/config/ftrace/nmi/enter.h) \
+    $(wildcard include/config/hwlat/tracer.h) \
+  include/linux/vtime.h \
+    $(wildcard include/config/virt/cpu/accounting.h) \
+    $(wildcard include/config/irq/time/accounting.h) \
+  include/linux/context_tracking_state.h \
+    $(wildcard include/config/context/tracking.h) \
+  include/linux/static_key.h \
+  arch/arm/include/asm/hardirq.h \
+  arch/arm/include/asm/irq.h \
+    $(wildcard include/config/sparse/irq.h) \
+    $(wildcard include/config/multi/irq/handler.h) \
+  include/linux/irq_cpustat.h \
+  arch/arm/include/asm/sections.h \
+  include/asm-generic/sections.h \
+  include/linux/ctype.h \
 
 /home/mgo/Documents/Course/KNURE-linux-base-camp-2018/Homework/Interrupts/Interrupts.o: $(deps_/home/mgo/Documents/Course/KNURE-linux-base-camp-2018/Homework/Interrupts/Interrupts.o)
 

@@ -27,4 +27,4 @@ __attribute__((section(".modinfo"))) =
 MODULE_ALIAS("of:N*T*CMaGol,test_drv");
 MODULE_ALIAS("of:N*T*CMaGol,test_drvC*");
 
-MODULE_INFO(srcversion, "6A12DC698DF696092E95852");
+MODULE_INFO(srcversion, "05FD2D680E318FCF1057AB6");
