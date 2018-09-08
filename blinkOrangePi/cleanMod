@@ -1,0 +1,2 @@
+#!/bin/bash
+ $(rm -f *.o .*.cmd .*.flags *.mod.c *.order *.symvers)
