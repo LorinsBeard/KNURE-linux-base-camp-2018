@@ -22,22 +22,27 @@
 
 #include <linux/kernel.h>
 #include <linux/module.h>
-#include <linux/platform_device.h>
-#include <linux/of.h>
-#include <linux/of_device.h>
 #include <linux/input.h>
 #include <linux/init.h>
 #include <linux/i2c.h>
 #include <linux/err.h>
 #include "mcp6050_Sensor.h"
+#include <linux/gpio.h>
+#include <linux/of_gpio.h>
+#include <linux/irq.h>
+#include <linux/interrupt.h>
+#include <linux/uaccess.h>
+#include <linux/delay.h>
+
+
 
 #define DEVICE_NAME	"mcp6050_Sensor"
- 
+#define INTERRUPT_GPIO    ((1 - 1) * 32 + 6)   // (position of letter in alphabet - 1) * 32 + pin number   PA6
 
 
 static struct device *dev;
-
-
+int interrupt_cnt;
+int interrupt_n;
 
 
 typedef struct  {
@@ -62,78 +67,40 @@ int ReadParameters(void);
 
 
 
-static int Get_accel_X_show(struct class *class,
+static int Get_accel_show(struct class *class,
 	                         struct class_attribute *attr, char *buf)
 {
 	dev_info(dev, "%s\n", __FUNCTION__);
-    ReadParameters();
-    printk ("accelerometer`s X value is %d\n", sensor.accel_values[0]);
+    printk ("accelerometer`s [x,y,z] value is [%d,%d,%d]\n", sensor.accel_values[0], sensor.accel_values[1], sensor.accel_values[2]);
     return 0;
 }
 
-static int Get_accel_Y_show(struct class *class,
-                            struct class_attribute *attr, char *buf)
-{
-    dev_info(dev, "%s\n", __FUNCTION__);
-    ReadParameters();
-    printk ("accelerometer`s Y value is %d\n", sensor.accel_values[1]);
-    return 0;
-}
-
-static int Get_accel_Z_show(struct class *class,
-                            struct class_attribute *attr, char *buf)
-{
-    dev_info(dev, "%s\n", __FUNCTION__);
-    ReadParameters();
-    printk ("accelerometer`s Z value is %d\n", sensor.accel_values[2]);
-    return 0;  
-}
-
-static int Get_giro_X_show(struct class *class,
+static int Get_giro_show(struct class *class,
                            struct class_attribute *attr, char *buf)
 {
     dev_info(dev, "%s\n", __FUNCTION__);
-    ReadParameters();
-    printk ("gyroscop`s X value is %d\n", sensor.gyro_values[0]);
+    printk ("gyroscop`s [x,y,z] value is [%d,%d,%d]\n", sensor.gyro_values[0], sensor.gyro_values[1],sensor.gyro_values[2]);
     return 0;
-}
-
-static int Get_giro_Y_show(struct class *class,
-                           struct class_attribute *attr, char *buf)
-{
-    dev_info(dev, "%s\n", __FUNCTION__);
-    ReadParameters();
-    printk ("gyroscop`s Y value is %d\n", sensor.gyro_values[1]);
-    return 0;
-}
-
-static  Get_giro_Z_show(struct class *class,
-                                 struct class_attribute *attr, char *buf)
-{
-    dev_info(dev, "%s\n", __FUNCTION__); 
-    ReadParameters();
-    printk ("gyroscop`s Z value is %d\n", sensor.gyro_values[2]);
-    return 0;  
 }
 
 static int Get_temperature_show(struct class *class,
                                 struct class_attribute *attr, char *buf)
 {
     dev_info(dev, "%s\n", __FUNCTION__);
-    ReadParameters();
     printk ("value of temperature is %d\n", sensor.temperature);
     return 0; 
 }
 
+static int Get_interrupts_count_show(struct class *class,
+                                     struct class_attribute *attr, char *buf){
+    printk ("counted interrupts is  %d\n", interrupt_cnt);
+    return 0; 
+}
 
-CLASS_ATTR_RO(Get_accel_X);
-CLASS_ATTR_RO(Get_accel_Y);
-CLASS_ATTR_RO(Get_accel_Z);
-CLASS_ATTR_RO(Get_giro_X);
-CLASS_ATTR_RO(Get_giro_Y);
-CLASS_ATTR_RO(Get_giro_Z);
+CLASS_ATTR_RO(Get_accel);
+CLASS_ATTR_RO(Get_giro);
 CLASS_ATTR_RO(Get_temperature);
-
+CLASS_ATTR_RO(Get_interrupts_count);
 
 static void make_sysfs_entry(struct i2c_client *drv_client)
 {
@@ -149,13 +116,10 @@ static void make_sysfs_entry(struct i2c_client *drv_client)
 		}
 		else{
             int res;
-			res = class_create_file(sys_class, &class_attr_Get_accel_X);
-			res = class_create_file(sys_class, &class_attr_Get_accel_Y);
-            res = class_create_file(sys_class, &class_attr_Get_accel_Z);
-            res = class_create_file(sys_class, &class_attr_Get_giro_X);
-            res = class_create_file(sys_class, &class_attr_Get_giro_Y);
-            res = class_create_file(sys_class, &class_attr_Get_giro_Z);
+			res = class_create_file(sys_class, &class_attr_Get_accel);
+            res = class_create_file(sys_class, &class_attr_Get_giro);
             res = class_create_file(sys_class, &class_attr_Get_temperature);
+            res = class_create_file(sys_class, &class_attr_Get_interrupts_count);
 
             sensor.sys_class = sys_class;			
 		}
@@ -165,12 +129,15 @@ static void make_sysfs_entry(struct i2c_client *drv_client)
 
 static int ConfigSensor(void){
     u8 returnedStatus = 1;
+    i2c_smbus_write_byte_data(sensor.client, REG_PWR_MGMT_1, 0x80);
+    msleep_interruptible(20);
+
     i2c_smbus_write_byte_data(sensor.client, REG_CONFIG, 0);
     i2c_smbus_write_byte_data(sensor.client, REG_GYRO_CONFIG, 0);
     i2c_smbus_write_byte_data(sensor.client, REG_ACCEL_CONFIG, 0);
     i2c_smbus_write_byte_data(sensor.client, REG_FIFO_EN, 0);
     i2c_smbus_write_byte_data(sensor.client, REG_INT_PIN_CFG, 0);
-    i2c_smbus_write_byte_data(sensor.client, REG_INT_ENABLE, 0);
+    i2c_smbus_write_byte_data(sensor.client, REG_INT_ENABLE, 0xff);
     i2c_smbus_write_byte_data(sensor.client, REG_USER_CTRL, 0);
     i2c_smbus_write_byte_data(sensor.client, REG_PWR_MGMT_1, 0);
     i2c_smbus_write_byte_data(sensor.client, REG_PWR_MGMT_2, 0);
@@ -188,7 +155,7 @@ int ReadParameters(void){
     sensor.accel_values[2] = (s16)((u16)i2c_smbus_read_word_swapped(sensor.client, REG_ACCEL_ZOUT_H));
 
 
-/* read data gyro */
+    /* read data gyro */
     sensor.gyro_values[0] = (s16)((u16)i2c_smbus_read_word_swapped(sensor.client, REG_GYRO_XOUT_H));
     sensor.gyro_values[1] = (s16)((u16)i2c_smbus_read_word_swapped(sensor.client, REG_GYRO_YOUT_H));
     sensor.gyro_values[2] = (s16)((u16)i2c_smbus_read_word_swapped(sensor.client, REG_GYRO_ZOUT_H));
@@ -204,7 +171,46 @@ int ReadParameters(void){
 }
 
 
+static irqreturn_t Button_sw4_interrupt( int irq, void *dev_id ) {
+   dev_err(dev, "in interrupt");
 
+   return IRQ_NONE;
+}
+
+
+
+static  irq_handler_t gyroExternal_interrupt( int irq, void *dev_id , struct ptr_regs *regs) {
+   interrupt_cnt ++;
+   ReadParameters();   
+   return (irq_handler_t)IRQ_HANDLED;
+}
+
+
+int mpu6050_irq_init(void){
+    dev_err(dev, "IN irq init");
+    gpio_request(INTERRUPT_GPIO, "sysfs");
+    gpio_direction_input(INTERRUPT_GPIO);
+    gpio_export(INTERRUPT_GPIO, false);
+
+    dev_info(dev, "mpu6050: gpio %d connected to INT state is %d \n",
+             INTERRUPT_GPIO, gpio_get_value(INTERRUPT_GPIO) );
+
+    interrupt_n = gpio_to_irq(INTERRUPT_GPIO);
+    dev_info(dev, "mpu6050: gpio %d irq is %d \n",   INTERRUPT_GPIO, interrupt_n );
+
+    int res = 0;
+  
+    res = request_irq( interrupt_n, (irq_handler_t)gyroExternal_interrupt, IRQF_TRIGGER_RISING, "mpu_6050_irq_handler", NULL );
+    
+    return res;
+}
+
+
+void mpu6050_irq_Free(void){
+    free_irq(interrupt_n, NULL);
+    gpio_unexport(INTERRUPT_GPIO);
+    gpio_free(INTERRUPT_GPIO);
+}
 
 
 
@@ -225,27 +231,32 @@ static int Sensor_mcp6050_probe(struct i2c_client *drv_client,
     }else{
          dev_err(dev,"pointer to drv_client is null");
     }
+    adapter = drv_client->adapter;
+
+    if (!adapter)
+    {
+        dev_err(dev, "adapter indentification error\n");
+        return -ENODEV;
+    }
+
+    dev_info(dev, "I2C client address %d \n", drv_client->addr);
+
+    if (!i2c_check_functionality(adapter, I2C_FUNC_SMBUS_BYTE_DATA)) {
+            dev_err(dev, "operation not supported\n");
+            return -ENODEV;
+    }
+
 
     ConfigSensor();
-    dev_err(dev,"sensor has configured");
-
- //   adapter = drv_client->adapter;
-
- //    if (!adapter)
- //    {
- //        dev_err(dev, "adapter indentification error\n");
- //        return -ENODEV;
- //    }
-
- //    dev_info(dev, "I2C client address %d \n", drv_client->addr);
-
- //    if (!i2c_check_functionality(adapter, I2C_FUNC_SMBUS_BYTE_DATA)) {
- //            dev_err(dev, "operation not supported\n");
- //            return -ENODEV;
- //    }
-
+    dev_info(dev, "senser was cofigurated \n");
 
 	make_sysfs_entry(sensor.client);
+
+    dev_info(dev, "number of pin is %d\n", INTERRUPT_GPIO);    
+    int res = mpu6050_irq_init();
+    dev_info(dev, "irq initialized with status %d \n", res);
+
+    interrupt_cnt = 0;
     dev_info(dev, "mcp6050_sensor driver successfully loaded\n");
 
 	return 0;
@@ -255,14 +266,12 @@ static int Sensor_mcp6050_probe(struct i2c_client *drv_client,
 
 static int Sensor_mcp6050_ssd1306_remove(struct i2c_client *client)
 {
-	
-    class_remove_file(sensor.sys_class, &class_attr_Get_accel_X);
-    class_remove_file(sensor.sys_class, &class_attr_Get_accel_Y);
-    class_remove_file(sensor.sys_class, &class_attr_Get_accel_Z);
-    class_remove_file(sensor.sys_class, &class_attr_Get_giro_X);
-    class_remove_file(sensor.sys_class, &class_attr_Get_giro_Y);
-    class_remove_file(sensor.sys_class, &class_attr_Get_giro_Z);
+	mpu6050_irq_Free();
+
+    class_remove_file(sensor.sys_class, &class_attr_Get_accel);
+    class_remove_file(sensor.sys_class, &class_attr_Get_giro);
     class_remove_file(sensor.sys_class, &class_attr_Get_temperature);
+    class_remove_file(sensor.sys_class, &class_attr_Get_interrupts_count);
 	class_destroy(sensor.sys_class);
 
 	dev_info(dev, "Driver was remuved successfully!\n");
