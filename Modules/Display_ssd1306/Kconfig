@@ -1,0 +1,12 @@
+if I2C
+
+config SSD_1306
+	bool "Control LCD display"
+	depends on I2C && SYSFS 
+        tristate "Module for work with LCD screen based on ssd1306 chip"
+
+        ---help---
+        This is module for control lcd display, based on ssd1306 chip by frame buffer 
+   
+ 
+  

@@ -2,7 +2,10 @@
 
 export CROSS_COMPILE=arm-linux-gnueabi-
 
-MODNAME="ssd1351.ko"
+MODNAME="oled_SSD1351.ko"
+OFILE="$BUILD_KERNEL/include/generated/utsrelease.h"
+MESSAGE="#define UTS_RELEASE \"4.17.11-sunxi\" "
+
 
 # parse commandline options
 while [ ! -z "$1"  ] ; do
@@ -16,6 +19,7 @@ while [ ! -z "$1"  ] ; do
                 ;;
             --module)
                 echo "Build module"
+		echo "$MESSAGE" > "$OFILE"
                 make ARCH=arm
                 ;;
             --deploy)

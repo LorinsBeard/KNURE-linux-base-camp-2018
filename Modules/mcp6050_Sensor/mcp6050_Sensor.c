@@ -19,11 +19,10 @@
  *
  */
 
-
+#include <linux/init.h>
 #include <linux/kernel.h>
 #include <linux/module.h>
 #include <linux/input.h>
-#include <linux/init.h>
 #include <linux/i2c.h>
 #include <linux/err.h>
 #include "mcp6050_Sensor.h"
@@ -129,15 +128,26 @@ static void make_sysfs_entry(struct i2c_client *drv_client)
 
 static int ConfigSensor(void){
     u8 returnedStatus = 1;
-    i2c_smbus_write_byte_data(sensor.client, REG_PWR_MGMT_1, 0x80);
-    msleep_interruptible(20);
+
+    // i2c_smbus_write_byte_data(sensor.client, REG_CONFIG, 0);
+    // i2c_smbus_write_byte_data(sensor.client, REG_GYRO_CONFIG, 0);
+    // i2c_smbus_write_byte_data(sensor.client, REG_ACCEL_CONFIG, 0);
+    // i2c_smbus_write_byte_data(sensor.client, REG_FIFO_EN, 0);
+    // i2c_smbus_write_byte_data(sensor.client, REG_INT_PIN_CFG, 0);
+    // i2c_smbus_write_byte_data(sensor.client, REG_INT_ENABLE, 0);
+    // i2c_smbus_write_byte_data(sensor.client, REG_USER_CTRL, 0);
+    // i2c_smbus_write_byte_data(sensor.client, REG_PWR_MGMT_1, 0);
+    // i2c_smbus_write_byte_data(sensor.client, REG_PWR_MGMT_2, 0);
+
+    i2c_smbus_write_byte_data(sensor.client, REG_PWR_MGMT_1, 0x0);
+    //msleep_interruptible(20);
 
     i2c_smbus_write_byte_data(sensor.client, REG_CONFIG, 0);
     i2c_smbus_write_byte_data(sensor.client, REG_GYRO_CONFIG, 0);
     i2c_smbus_write_byte_data(sensor.client, REG_ACCEL_CONFIG, 0);
     i2c_smbus_write_byte_data(sensor.client, REG_FIFO_EN, 0);
-    i2c_smbus_write_byte_data(sensor.client, REG_INT_PIN_CFG, 0);
-    i2c_smbus_write_byte_data(sensor.client, REG_INT_ENABLE, 0xff);
+    i2c_smbus_write_byte_data(sensor.client, REG_INT_PIN_CFG, 0xA0);
+    i2c_smbus_write_byte_data(sensor.client, REG_INT_ENABLE, 1);
     i2c_smbus_write_byte_data(sensor.client, REG_USER_CTRL, 0);
     i2c_smbus_write_byte_data(sensor.client, REG_PWR_MGMT_1, 0);
     i2c_smbus_write_byte_data(sensor.client, REG_PWR_MGMT_2, 0);

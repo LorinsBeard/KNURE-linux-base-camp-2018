@@ -4,7 +4,7 @@ obj-m := oled_SSD1351.o
 
 #KDIR ?= ${HOME}/OPi/orangepi_h3_linux/OrangePi-Kernel/linux-4.9/
 #KDIR ?= ~/BBB/KERNEL/
-KDIR ?= ${BUILD_KERNEL}
+KDIR = ${BUILD_KERNEL}
 
 PWD := $(shell pwd)
 

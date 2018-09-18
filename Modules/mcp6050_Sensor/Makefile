@@ -1,6 +1,4 @@
-CONFIG_MODULE_SIG=n
-
-obj-m := mcp6050_Sensor.o
+obj-$(CONFIG_MCP_6050) += mcp6050_Sensor.o
 
 KDIR = ${BUILD_KERNEL}
 

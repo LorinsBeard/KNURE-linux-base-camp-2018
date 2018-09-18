@@ -1,0 +1,14 @@
+
+Data can be send to display by frame buffer (fb0)
+
+Required properties:
+- compatible : should contain "MaGol,lcd_ssd1306" for matching
+- reg        : <register mapping>
+
+Example:
+
+lcd_ssd1306: lcd_ssd1306@3c {
+		compatible = "MaGol,lcd_ssd1306";
+		reg = <0x3c>;
+		status = "okay";
+	};

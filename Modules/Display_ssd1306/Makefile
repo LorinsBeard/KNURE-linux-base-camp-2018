@@ -1,9 +1,6 @@
-CONFIG_MODULE_SIG=n
+obj-$(CONFIG_SSD_1306)     += ssd1306.o
 
-obj-m := ssd1306.o
 
-#KDIR ?= ${HOME}/OPi/orangepi_h3_linux/OrangePi-Kernel/linux-4.9/
-#KDIR ?= ~/BBB/KERNEL/
 KDIR ?= ${BUILD_KERNEL}
 
 PWD := $(shell pwd)

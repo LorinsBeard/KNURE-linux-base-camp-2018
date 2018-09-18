@@ -26,8 +26,8 @@ while [ ! -z "$1"  ] ; do
             --deploy)
                 echo "Deploy kernel module"
                 cp $BUILD_KERNEL/arch/arm/boot/dts/sun8i-h3-orangepi-one.dts ${TRAINING_ROOT}
-                scp $MODNAME root@192.168.10.2:~
-                scp $BUILD_KERNEL/arch/arm/boot/dts/sun8i-h3-orangepi-one.dtb root@192.168.10.2:~
+                scp $MODNAME opi:~
+                scp $BUILD_KERNEL/arch/arm/boot/dts/sun8i-h3-orangepi-one.dtb opi:~
                 ;;
             --kconfig)
                 echo "configure kernel"

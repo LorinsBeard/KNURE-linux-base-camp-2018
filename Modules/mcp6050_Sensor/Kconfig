@@ -1,0 +1,16 @@
+if I2C
+
+config MCP_6050
+	bool "Control sensor on mcp 6050"
+	depends on I2C && SYSFS 
+        tristate "Module for work with sensor mcp 6050"
+
+        ---help---
+        This is module for control sencor based on mcp 6050. Data what can be read:
+        - temperature;
+        - anlge of position (gyroscop);
+        - speed of position change (accelerometer);
+        Data can be read by sysfs files: Get_temperature, Get_gyro, Get_accel, Get_interrupt_count
+   
+ 
+  

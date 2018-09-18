@@ -24,7 +24,8 @@ __used
 __attribute__((section(".modinfo"))) =
 "depends=";
 
-MODULE_ALIAS("of:N*T*CMaGol,test_drv");
-MODULE_ALIAS("of:N*T*CMaGol,test_drvC*");
+MODULE_ALIAS("spi:oled_ssd1351s");
+MODULE_ALIAS("of:N*T*CMaGol,oled_ssd1351");
+MODULE_ALIAS("of:N*T*CMaGol,oled_ssd1351C*");
 
-MODULE_INFO(srcversion, "5335177656C4C22C948DD6C");
+MODULE_INFO(srcversion, "55C5382BB3F0EAD43507069");

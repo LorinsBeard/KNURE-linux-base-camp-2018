@@ -164,13 +164,13 @@
 
 &i2c0 {
     pinctrl-names = "default";
-
+    pinctrl-0 = <&i2c0_pins>;
 	status = "okay";
-    clock-frequency = <400000>;
+    clock-frequency = <100000>;
 
 
 	gl_gyro: gl_gyro@68 {
-		compatible = "gl,mpu6050";
+		compatible = "MaGol,sensor_mcp6050";
 		reg = <0x68>;
 		status = "okay";
 	};
@@ -215,9 +215,10 @@
 	};
 
 	oled_opc: oled_pins {
-		pins = "PA0", "PA1";
+		pins = "PA0", "PA1", "PA2";
 		function = "gpio_out";
 	};
+
 };
 
 &r_pio {
@@ -293,12 +294,13 @@
 		pinctrl-names = "default";
 		pinctrl-0 = <&oled_opc>;
 
-		spi-max-frequency = <36000000>;
+		spi-max-frequency = <24000000>;
 		buswidth = <8>;
 
 
-		reset-gpios = <&pio 0 0 GPIO_ACTIVE_LOW>;
-		dc-gpios    = <&pio 0 1 GPIO_ACTIVE_LOW>;
+		reset-gpios = <&oled_opc 0 0 GPIO_ACTIVE_LOW>;
+		dc-gpios    = <&oled_opc 0 1 GPIO_ACTIVE_LOW>;
+		cs-gpios    = <&oled_opc 0 2 GPIO_ACTIVE_LOW>;
 	};
 
 };

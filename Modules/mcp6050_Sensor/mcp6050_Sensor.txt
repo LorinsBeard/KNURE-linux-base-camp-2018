@@ -1,0 +1,14 @@
+
+Data can be read by files in sysfs
+
+Required properties:
+- compatible : should contain "MaGol,lcd_ssd1306" for matching
+- reg        : <register mapping>
+
+Example:
+
+gl_gyro: gl_gyro@68 {
+		compatible = "MaGol,sensor_mcp6050";
+		reg = <0x68>;
+		status = "okay";
+	};

@@ -79,7 +79,7 @@
 		pwr_led {
 			label = "orangepi:green:pwr";
 			gpios = <&r_pio 0 10 GPIO_ACTIVE_HIGH>;
-			default-state = "on";
+			default-state = "blink";
 		};
 
 		status_led {
@@ -115,6 +115,17 @@
 		gpios-states = <0x1>;
 		states = <1100000 0x0
 			  1300000 0x1>;
+	};
+
+
+
+    MyDriver: MyDriver {
+	    label      = "MaGol_s driver";
+	    compatible = "MaGol,test_drv";
+	    status     = "okay";
+
+	    pinctrl-0 = <&oled_opc>;
+	    led-gpios = <&pio 0 0 GPIO_ACTIVE_LOW>;
 	};
 };
 
@@ -204,7 +215,7 @@
 	};
 
 	oled_opc: oled_pins {
-		pins = "PA0", "PA1";
+		pins = "PA0", "PA1", "PA2";
 		function = "gpio_out";
 	};
 };
@@ -282,12 +293,14 @@
 		pinctrl-names = "default";
 		pinctrl-0 = <&oled_opc>;
 
-		spi-max-frequency = <36000000>;
+		spi-max-frequency = <24000000>;
 		buswidth = <8>;
 
 
-		reset-gpios = <&pio 0 0 GPIO_ACTIVE_HIGH>;
-		dc-gpios    = <&pio 0 1 GPIO_ACTIVE_HIGH>;
+		reset-gpios = <&pio 0 0 GPIO_ACTIVE_LOW>;
+		dc-gpios    = <&pio 0 1 GPIO_ACTIVE_LOW>;
+		cs-gpios    = <&pio 0 2 GPIO_ACTIVE_LOW>;
 	};
+
 };
 
