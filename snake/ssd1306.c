@@ -327,6 +327,40 @@ void Graphic_drawLine_(u16 x1, u16 y1, u16 x2, u16 y2){
 
 
 
+
+
+void drawCircle(int16_t x0, int16_t y0, int16_t radius) {
+  int16_t x = 0, y = radius;
+    int16_t dp = 1 - radius;
+    do {
+        if (dp < 0)
+            dp = dp + 2 * (++x) + 3;
+        else
+            dp = dp + 2 * (++x) - 2 * (--y) + 5;
+
+        Graphic_setPoint(x0 + x, y0 + y);     //For the 8 octants
+        Graphic_setPoint(x0 - x, y0 + y);
+        Graphic_setPoint(x0 + x, y0 - y);
+        Graphic_setPoint(x0 - x, y0 - y);
+        Graphic_setPoint(x0 + y, y0 + x);
+        Graphic_setPoint(x0 - y, y0 + x);
+        Graphic_setPoint(x0 + y, y0 - x);
+        Graphic_setPoint(x0 - y, y0 - x);
+
+    } while (x < y);
+
+  Graphic_setPoint(x0 + radius, y0);
+  Graphic_setPoint(x0, y0 + radius);
+  Graphic_setPoint(x0 - radius, y0);
+  Graphic_setPoint(x0, y0 - radius);
+}
+
+
+
+
+
+
+
 void ssd1306_clear(u8 color){
 
 	memset(ssd1306_Buffer, color, sizeof(ssd1306_Buffer));
@@ -372,26 +406,47 @@ static ssize_t paint_show(void)
 static struct task_struct *task;
 static int data = 0x55;
 
-int thread_function(void *data)
-{
+int thread_function(void *data){
+
+    unsigned char line=0;
+    unsigned char lineSize=25;
+    unsigned char flagLeftRight=1;
+
+    int change_x=10;
+    short snake_size=25;
+    int change_y=10;
+    unsigned char flag=1;
 
     while(!kthread_should_stop()){
-         
-        printk(KERN_NOTICE "Blablamod:"); 
+        
+
+        
+        if (flag) change_y+=1;
+        else change_y-=1;
+
+        if (change_y==50)flag=0;
+        else if (change_y==10)flag=2;
 
         ssd1306_clear(0);
-        Graphic_drawLine_(0, 32, 80, 32);
+
+
+        drawCircle(change_y,change_y,5);
+
+
+        
+        if (flagLeftRight)line+=1;
+        else line-=1;
+
+        if (line==103)flagLeftRight=0;
+        else if(line==0)flagLeftRight=1;
+
+        Graphic_drawLine_(line, 63, line+lineSize, 63);
+        Graphic_drawLine_(line, 64, line+lineSize, 64);
         ssd1306_UpdateScreen(lcd);
 
-        msleep(1000);
+    
 
-        ssd1306_clear(0);
-        Graphic_drawLine_(0, 62, 80, 62);
-        ssd1306_UpdateScreen(lcd);
-
-        msleep(1000);
-
-
+        msleep(30);
         schedule();
     }
 
@@ -471,7 +526,7 @@ static int ssd1306_probe(struct i2c_client *drv_client,
 
 static int ssd1306_remove(struct i2c_client *client)
 {
-
+    kthread_stop(task);
     unregister_chrdev(Major, DEVICE_NAME);
 	dev_info(dev, "Goodbye, world!\n");
 	return 0;
