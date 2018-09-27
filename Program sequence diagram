@@ -1,0 +1,30 @@
+@startuml
+
+== Initialization ==
+
+Control_Logic_module -> RF_module: Call initialize function
+RF_module            -> RF_sensor: Send initialize cinfiguration to sensor
+rnote over Control_Logic_module
+  If initialize status OK - turn on <color green>green</color>  Led else <color red>red</color> 
+  Set read id to ~~0~~
+  Create stream for check read id
+endrnote
+
+
+RF_sensor --> Interrupt: Key was found
+RF_module ->  RF_sensor: Read data from key
+RF_module ->  Control_Logic_module: Call callback with read data like parameter
+
+
+Control_Logic_module -> Control_Logic_module: Save value from callback
+rnote over Control_Logic_module
+  Check value from callback on zero.
+  if value != 0 then check read key in storage.
+  If key exist lock should be unlock
+  read value should be cleared
+endrnote
+ 
+
+
+
+@enduml
