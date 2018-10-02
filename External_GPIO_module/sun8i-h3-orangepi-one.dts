@@ -131,18 +131,16 @@
 
 
 
-    ExtGPIO: ExtGPIO{
+    SmartLock: ExtGPIO{
 		label      = "External devices";
     	compatible = "MaGol_AlKl,externalGPIO";
 
-        pinctrl-names = "default";
     	pinctrl-0 = <&extGPIO_opc>;
 
-    	green_Led-gpios = <&pio 0 0 GPIO_ACTIVE_LOW>;
-    	red_Led-gpios   = <&pio 0 1 GPIO_ACTIVE_LOW>;
-    	lock_ON-gpios   = <&pio 0 2 GPIO_ACTIVE_LOW>;
-    	lock_OFF-gpios  = <&pio 0 3 GPIO_ACTIVE_LOW>;
-    	button-gpios    = <&pio 0 4 GPIO_ACTIVE_LOW>;
+    	greenLed-gpios = <&pio 0 7  GPIO_ACTIVE_LOW>;
+    	redLed-gpios   = <&pio 0 8  GPIO_ACTIVE_LOW>;
+    	lockON-gpios   = <&pio 0 9  GPIO_ACTIVE_LOW>;
+    	lockOFF-gpios  = <&pio 0 10 GPIO_ACTIVE_LOW>;
 	};
 
 
@@ -239,16 +237,16 @@
 		function = "gpio_out";
 	};
 
+    extGPIO_opc: ExtDev_pins {
+    	pins = "PA7", "PA8", "PA9", "PA10";
+		function = "gpio_out";
+    };
+
 	oled_opc: oled_pins {
 		pins = "PA0", "PA1", "PA2";
 		function = "gpio_out";
 	};
-
-
-    extGPIO_opc: ExtDev_pins {
-    	pins = "PA7", "PA8", "PA9", "PA10", "PA20";
-		function = "gpio_out";
-    };
+    
 };
 
 &r_pio {

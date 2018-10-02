@@ -5,7 +5,6 @@
 #include <linux/err.h>
 #include <linux/gpio.h>
 #include <linux/of_gpio.h>
-#include <linux/fs.h>
 #include <linux/platform_device.h>
 #include <linux/of.h>
 #include <linux/of_device.h>
@@ -16,8 +15,7 @@
 
 
 #define DEVICE_NAME	"extGPIO"
-#define SYSFS_NAME  "extGPIO"
-#define INTERRUPT_GPIO    ((1 - 1) * 32 + 20)   // (position of letter in alphabet - 1) * 32 + pin number   PA20
+#define INTERRUPT_GPIO    ((7 - 1) * 32 + 7)   // (position of letter in alphabet - 1) * 32 + pin number   PG7
 
 
 typedef struct{
@@ -32,7 +30,6 @@ typedef struct{
 }Indicate_t;
 
 typedef struct{
-    struct class  *sys_class;
     struct device *dev;
     Lock_t        lock;
     Indicate_t    leds;
@@ -44,9 +41,6 @@ typedef struct{
 
 static extDevice_t extDevices;
 static const struct of_device_id extGPIO_Devices_match[];
-
-
-
 
 
 void SetLockState(u8 state){
@@ -90,47 +84,14 @@ u8   SetLedMode(u8 led, u8 mode){
 }
 
 int  GetInterruptNumber(void){
-    return 1000;
+    return extDevices.countINT;
 }
 
-static  irq_handler_t extGPIO_button_interrupt( int irq, void *dev_id , struct ptr_regs *regs) {
+static  irq_handler_t extGPIO_button_interrupt(unsigned int irq, void *dev_id , struct ptr_regs *regs) {
    extDevices.countINT ++;
 
    return (irq_handler_t)IRQ_HANDLED;
 }
-
-
-//============DEBUG
-static int ShowIntCnt_show(struct class *class,
-                          struct class_attribute *attr, char *buf)
-{   
-    dev_info(extDevices.dev,"Interrupts count equal %d \n", extDevices.countINT);
-    return 0;
-}
-
-CLASS_ATTR_RO(ShowIntCnt);
-
-static void make_sysfs_entry(void)
-{
-    struct class *sysFS;
-    
-    sysFS = class_create(THIS_MODULE, SYSFS_NAME);
-
-    if (IS_ERR(sysFS)){
-        dev_err(extDevices.dev, "bad class create\n");
-    }
-    else{
-        class_create_file(sysFS, &class_attr_ShowIntCnt);
-
-        extDevices.sys_class = sysFS;
-
-        dev_info(extDevices.dev, "sys class created = %s \n", SYSFS_NAME);
-    }
-}
-
-
-
-//===========
 
 
 
@@ -138,35 +99,55 @@ static void make_sysfs_entry(void)
 /*=====
         INIT / DEINIT functions
 =====*/
-static int get_gpios_info(struct platform_device *pDev)
-{
+static int get_gpios_info(struct platform_device *pDev){
     struct device_node *np = pDev->dev.of_node;
     const char *name;
     u8     operationStatus = 0;
     
     dev_err(extDevices.dev, "read node\n");
+
     if (np) {
         if (!of_property_read_string(np, "label", &name))
             dev_info(extDevices.dev, "label = %s\n", name);
 
         //GREEN Led
-        extDevices.leds.Gled_gpio = devm_gpiod_get(extDevices.dev, "green_Led", GPIOD_OUT_HIGH);
+        extDevices.leds.Gled_gpio = devm_gpiod_get(extDevices.dev, "greenLed", GPIOD_OUT_HIGH);
         if (IS_ERR(extDevices.leds.Gled_gpio)) {
-            dev_err(extDevices.dev, "fail to get green_Led-gpios()\n");
+            dev_err(extDevices.dev, "fail to get greenLed-gpios()\n");
             return EINVAL;
         }
         if(!gpiod_direction_output(extDevices.leds.Gled_gpio, 1))
-           dev_info(extDevices.dev, "green_Led-gpios set as OUT\n");
+           dev_info(extDevices.dev, "greenLed-gpios set as OUT\n");
 
 
-    // //RED Led
-    //     extDevices.leds.Rled_gpio = devm_gpiod_get(extDevices.dev, "red_Led", GPIOD_OUT_LOW);
-    //     if (IS_ERR(extDevices.leds.Rled_gpio)) {
-    //         dev_err(extDevices.dev, "fail to get red_Led-gpios()\n");
-    //         return EINVAL;
-    //     }
-    //     if(!gpiod_direction_output(extDevices.leds.Rled_gpio, 1))
-    //        dev_info(extDevices.dev, "red_Led-gpios set as OUT\n");
+        //RED Led
+        extDevices.leds.Rled_gpio = devm_gpiod_get(extDevices.dev, "redLed", GPIOD_OUT_HIGH);
+        if (IS_ERR(extDevices.leds.Rled_gpio)) {
+            dev_err(extDevices.dev, "fail to get redLed-gpios()\n");
+            return EINVAL;
+        }
+        if(!gpiod_direction_output(extDevices.leds.Rled_gpio, 1))
+           dev_info(extDevices.dev, "redLed-gpios set as OUT\n");
+
+
+       //Lock
+        extDevices.lock.Lock_gpio = devm_gpiod_get(extDevices.dev, "lockON", GPIOD_OUT_HIGH);
+        if (IS_ERR(extDevices.lock.Lock_gpio)) {
+            dev_err(extDevices.dev, "fail to get lockON-gpios()\n");
+            return EINVAL;
+        }
+        if(!gpiod_direction_output(extDevices.lock.Lock_gpio, 1))
+           dev_info(extDevices.dev, "lockON-gpios set as OUT\n");
+
+
+       //Unlock 
+        extDevices.lock.Unlock_gpio = devm_gpiod_get(extDevices.dev, "unlock", GPIOD_OUT_HIGH);
+        if (IS_ERR(extDevices.lock.Unlock_gpio)) {
+            dev_err(extDevices.dev, "fail to get unlock-gpios()\n");
+            return EINVAL;
+        }
+        if(!gpiod_direction_output(extDevices.lock.Unlock_gpio, 1))
+           dev_info(extDevices.dev, "unlock-gpios set as OUT\n");
        
         
         operationStatus = 1;
@@ -180,7 +161,7 @@ static int get_gpios_info(struct platform_device *pDev)
 }
 
 int extGPIO_button_irq_init(void){
-    dev_err(extDevices.dev, "IN irq init");
+    
     gpio_request(INTERRUPT_GPIO, "sysfs");
     gpio_direction_input(INTERRUPT_GPIO);
     gpio_export(INTERRUPT_GPIO, false);
@@ -192,9 +173,11 @@ int extGPIO_button_irq_init(void){
     dev_info(extDevices.dev, "extGPIO_button: gpio %d irq is %d \n",   INTERRUPT_GPIO, extDevices.numberINT );
 
     int res = 0;
-  
-    res = request_irq( extDevices.numberINT, (irq_handler_t)extGPIO_button_interrupt,
-                       IRQF_TRIGGER_RISING, "extGPIO_button_irq_handler", NULL );
+    res = request_irq( extDevices.numberINT,
+                       (irq_handler_t)extGPIO_button_interrupt,
+                       IRQF_TRIGGER_RISING,
+                       "extGPIO_button_irq_handler",
+                        NULL );
     
     return res;
 }
@@ -207,10 +190,8 @@ void extGPIO_button_irq_Free(void){
 }
 
 
-static int ExtGPIO_Init(struct platform_device *pDev)
-{
+static int ExtGPIO_Init(struct platform_device *pDev){
    const struct of_device_id *match;
-
 
     extDevices.dev = &pDev->dev;
     match          = of_match_device(of_match_ptr(extGPIO_Devices_match), extDevices.dev);
@@ -218,20 +199,15 @@ static int ExtGPIO_Init(struct platform_device *pDev)
         dev_err(extDevices.dev, "failed of_match_device \n");
         return -EINVAL;
     }
-    int status = get_gpios_info(pDev);
 
+
+    int status = get_gpios_info(pDev);
     if(!status){
         dev_err(extDevices.dev, "failed to read get_gpios_info() \n");
         return -EINVAL;
     }
-    // gpiod_set_value(extDevices.leds.Gled_gpio, 1);
-    // gpiod_set_value(extDevices.leds.Rled_gpio, 1);
 
-
-    extDevices.numberINT = 0;
     extGPIO_button_irq_init();
-
-    make_sysfs_entry();
 
     dev_info(extDevices.dev, "extDriver was inited successfully!\n");
 
@@ -240,15 +216,8 @@ static int ExtGPIO_Init(struct platform_device *pDev)
 
 
 
-static int ExtGPIO_Deinit(struct platform_device *pDev)
-{
+static int ExtGPIO_Deinit(struct platform_device *pDev){
     extGPIO_button_irq_Free();
-
-    class_remove_file(extDevices.sys_class, &class_attr_ShowIntCnt);
-    class_destroy(extDevices.sys_class);
-
-    gpiod_set_value(extDevices.leds.Gled_gpio, 0);
-    gpiod_set_value(extDevices.leds.Rled_gpio, 0);
 
 	dev_info(extDevices.dev, "extDriver was removed successfully!\n");
 	return 0;
