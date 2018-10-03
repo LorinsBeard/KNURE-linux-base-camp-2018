@@ -8,6 +8,8 @@
 enum{
 	RED_LED,
 	GREEN_LED,
+	LOCK_OPEN_LED,
+	LOCK_CLOSE_LED,
 	Leds_Amount
 };
 

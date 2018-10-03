@@ -15,11 +15,10 @@
 
 
 #define DEVICE_NAME	"extGPIO"
-#define INTERRUPT_GPIO    ((7 - 1) * 32 + 7)   // (position of letter in alphabet - 1) * 32 + pin number   PG7
+#define INTERRUPT_GPIO    ((1 - 1) * 32 + 14)   // (position of letter in alphabet - 1) * 32 + pin number   PA14
 
 
 typedef struct{
-    struct gpio_desc *Lock_gpio;
     struct gpio_desc *Unlock_gpio;
     u8     state;
 }Lock_t;
@@ -27,6 +26,8 @@ typedef struct{
 typedef struct{
     struct gpio_desc *Gled_gpio;
     struct gpio_desc *Rled_gpio;
+    struct gpio_desc *lockOpenled_gpio;
+    struct gpio_desc *lockCloseled_gpio;
 }Indicate_t;
 
 typedef struct{
@@ -48,12 +49,10 @@ void SetLockState(u8 state){
    switch(state){
     default:
     case STATE_LOCK:
-        gpiod_set_value(extDevices.lock.Lock_gpio, 1);
         gpiod_set_value(extDevices.lock.Unlock_gpio, 0);
         extDevices.lock.state = STATE_LOCK;
     break;
     case STATE_UNLOCK:
-        gpiod_set_value(extDevices.lock.Lock_gpio, 0);
         gpiod_set_value(extDevices.lock.Unlock_gpio, 1);
         extDevices.lock.state = STATE_UNLOCK;
     break;
@@ -76,6 +75,12 @@ u8   SetLedMode(u8 led, u8 mode){
         break;
         case GREEN_LED:
             gpiod_set_value(extDevices.leds.Gled_gpio, mode);
+        break;
+        case LOCK_OPEN_LED:
+            gpiod_set_value(extDevices.leds.lockOpenled_gpio, mode);
+        break;
+        case LOCK_CLOSE_LED:
+            gpiod_set_value(extDevices.leds.lockCloseled_gpio, mode);
         break;
         }
     }
@@ -130,15 +135,24 @@ static int get_gpios_info(struct platform_device *pDev){
            dev_info(extDevices.dev, "redLed-gpios set as OUT\n");
 
 
-       //Lock
-        extDevices.lock.Lock_gpio = devm_gpiod_get(extDevices.dev, "lockON", GPIOD_OUT_HIGH);
-        if (IS_ERR(extDevices.lock.Lock_gpio)) {
-            dev_err(extDevices.dev, "fail to get lockON-gpios()\n");
+        //Lock open Led
+        extDevices.leds.lockOpenled_gpio = devm_gpiod_get(extDevices.dev, "lockOpenLed", GPIOD_OUT_HIGH);
+        if (IS_ERR(extDevices.leds.lockOpenled_gpio)) {
+            dev_err(extDevices.dev, "fail to get lockOpenLed-gpios()\n");
             return EINVAL;
         }
-        if(!gpiod_direction_output(extDevices.lock.Lock_gpio, 1))
-           dev_info(extDevices.dev, "lockON-gpios set as OUT\n");
+        if(!gpiod_direction_output(extDevices.leds.lockOpenled_gpio, 1))
+           dev_info(extDevices.dev, "lockOpenLed-gpios set as OUT\n");
 
+
+       //Lock close Led
+        extDevices.leds.lockCloseled_gpio = devm_gpiod_get(extDevices.dev, "lockCloseLed", GPIOD_OUT_HIGH);
+        if (IS_ERR(extDevices.leds.lockCloseled_gpio)) {
+            dev_err(extDevices.dev, "fail to get lockCloseLed-gpios()\n");
+            return EINVAL;
+        }
+        if(!gpiod_direction_output(extDevices.leds.lockCloseled_gpio, 1))
+           dev_info(extDevices.dev, "lockCloseLed-gpios set as OUT\n");
 
        //Unlock 
         extDevices.lock.Unlock_gpio = devm_gpiod_get(extDevices.dev, "unlock", GPIOD_OUT_HIGH);

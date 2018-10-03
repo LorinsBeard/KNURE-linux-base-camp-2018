@@ -137,10 +137,11 @@
 
     	pinctrl-0 = <&extGPIO_opc>;
 
-    	greenLed-gpios = <&pio 0 7  GPIO_ACTIVE_LOW>;
-    	redLed-gpios   = <&pio 0 8  GPIO_ACTIVE_LOW>;
-    	lockON-gpios   = <&pio 0 9  GPIO_ACTIVE_LOW>;
-    	lockOFF-gpios  = <&pio 0 10 GPIO_ACTIVE_LOW>;
+    	greenLed-gpios      = <&pio 0 1  GPIO_ACTIVE_LOW>;
+    	redLed-gpios        = <&pio 0 0  GPIO_ACTIVE_LOW>;
+    	lockOpenLed-gpios   = <&pio 0 11 GPIO_ACTIVE_LOW>;
+    	lockCloseLed-gpios  = <&pio 0 12 GPIO_ACTIVE_LOW>;
+    	unlock-gpios        = <&pio 0 6  GPIO_ACTIVE_LOW>;
 	};
 
 
@@ -238,7 +239,7 @@
 	};
 
     extGPIO_opc: ExtDev_pins {
-    	pins = "PA7", "PA8", "PA9", "PA10";
+    	pins = "PA1", "PA0", "PA11", "PA12", "PA6";
 		function = "gpio_out";
     };
 

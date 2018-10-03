@@ -3,7 +3,7 @@
 
 export CROSS_COMPILE=arm-linux-gnueabi-
 
-export TRAINING_ROOT=${HOME}/Documents/Course/Attestation_Project_Linux_Kernel/KNURE-linux-base-camp-2018/External_GPIO_module
+export TRAINING_ROOT=${HOME}/Documents/Course/Attestation_Project_Linux_Kernel/GIT/External_GPIO_module
 
 export BUILD_KERNEL=${HOME}/Documents/Course/Armbian/arm/source/usr/src/
 
