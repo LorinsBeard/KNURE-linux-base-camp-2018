@@ -8,8 +8,6 @@
 #include <linux/timer.h>
 #include "External_GPIO_module/extGPIO.h"
 
-
-//@TODO Add parsing of button interrupt
 //@TODO Add stream for parsing value of read number
 //@TODO implement main logic of work
 
