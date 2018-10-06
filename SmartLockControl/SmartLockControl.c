@@ -14,12 +14,20 @@
 
 #define PERIOD_UNLOCK_TIME  5000
 
-static int BUTTON_IRQ;
-static int interrupt_Num;
-static u16 valueFromRFID;
-static struct task_struct *kthread;
-static u32 startUnlockTime;
-static struct timer_list lockOperationTimer;
+
+typedef struct{
+	int BUTTON_IRQ;
+	int interrupt_Num;
+
+	u16 valueFromRFID;
+
+	u32 startUnlockTime;
+	struct timer_list lockOperationTimer;
+
+	struct task_struct *kthread;
+}elementsOfLogic_t;
+
+static elementsOfLogic_t logic = {0};
 
 
 
@@ -30,7 +38,7 @@ static void UnlockOperation(void);
 
 static int MainLogic(void *data){
 
-	if(valueFromRFID != 0){
+	if(logic.valueFromRFID != 0){
 		//@TODO read possible value from file
 		// @TODO check value if they correct
 		u8 readRFID_areCorrect = 1; // should be seted by previouce function
@@ -38,7 +46,7 @@ static int MainLogic(void *data){
 			UnlockOperation();
 			//Write to file who was open the lock
 		}
-		valueFromRFID = 0;
+		logic.valueFromRFID = 0;
 		printk("In kthread");
 	}
 
@@ -52,7 +60,7 @@ static int MainLogic(void *data){
 
 static irqreturn_t OpenLock_btn( int irq, void *dev_id ) {
    printk(__FUNCTION__);
-   valueFromRFID = 10;
+   logic.valueFromRFID = 10;
    //UnlockOperation();
    return IRQ_NONE;
 }
@@ -71,7 +79,7 @@ void UnlockOperation(void){
 	// SetLedMode(LOCK_OPEN_LED,  MODE_ON);
 	// SetLedMode(LOCK_CLOSE_LED, MODE_OFF);
     //@TODO Should create possible to write operation to log file
-    mod_timer( &lockOperationTimer, jiffies + msecs_to_jiffies(PERIOD_UNLOCK_TIME) );
+    mod_timer( &logic.lockOperationTimer, jiffies + msecs_to_jiffies(PERIOD_UNLOCK_TIME) );
     printk("Unlock Operation");
 }
 
@@ -81,15 +89,11 @@ void UnlockOperation(void){
 =====*/
 
 static int __init SmartLockControlInit(void) {
-    
-   //SET DEFAULT VALUE
-    valueFromRFID = 0;
 
 
 //INITIALIZE BUTTON PARSER
-    BUTTON_IRQ = 117;
-    interrupt_Num = 0;
-    if(request_irq( BUTTON_IRQ, OpenLock_btn, IRQF_SHARED, "LockBtn_handler", &interrupt_Num )){
+    logic.BUTTON_IRQ = 117;
+    if(request_irq( logic.BUTTON_IRQ, OpenLock_btn, IRQF_SHARED, "LockBtn_handler", &logic.interrupt_Num )){
     	//@TODO Turn on system state RED led
     	return -1;
     }
@@ -100,8 +104,8 @@ static int __init SmartLockControlInit(void) {
     // wake_up_process(kthread);
 
 
-   __init_timer(&lockOperationTimer, LockOperation, 0);
-   LockOperation(&lockOperationTimer);
+   __init_timer(&logic.lockOperationTimer, LockOperation, 0);
+   LockOperation(&logic.lockOperationTimer);
 
 
     printk("Smart lock control module has inited sucsessfully\n");
@@ -110,9 +114,9 @@ return 0;
 
 
 static void __exit SmartLockControlDeinit(void) {
-   free_irq( BUTTON_IRQ, &interrupt_Num );
-   del_timer( &lockOperationTimer );  
-   kthread_stop(kthread);
+   free_irq( logic.BUTTON_IRQ, &logic.interrupt_Num );
+   del_timer( &logic.lockOperationTimer );  
+   kthread_stop(logic.kthread);
 
    printk("Smart lock control module has deinited sucsessfully\n");
 }
