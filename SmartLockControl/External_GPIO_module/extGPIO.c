@@ -44,34 +44,33 @@ static extDevice_t extDevices;
 static const struct of_device_id extGPIO_Devices_match[];
 
 
-void SetLockState(u8 state){
+void SetLockState(u8 state){       
+    gpiod_set_value(extDevices.lock.Unlock_gpio, state);
+    extDevices.lock.state = state;
 
-   switch(state){
-    default:
-    case STATE_LOCK:
-        gpiod_set_value(extDevices.lock.Unlock_gpio, 0);
-        extDevices.lock.state = STATE_LOCK;
-    break;
-    case STATE_UNLOCK:
-        gpiod_set_value(extDevices.lock.Unlock_gpio, 1);
-        extDevices.lock.state = STATE_UNLOCK;
-    break;
-   }
+    if(state = STATE_LOCK){
+        printk("Lock state is LOCK");
+    }else{
+        printk("Lock state is UNLOCK");
+    }
 }
+EXPORT_SYMBOL(SetLockState);
+
 
 u8   GetLockState(void){
     return extDevices.lock.state;
 }
+EXPORT_SYMBOL(GetLockState);
+
 
 u8   SetLedMode(u8 led, u8 mode){
     u8 status = 0;
-
+   
     if(led < Leds_Amount){
        status = 1;
-
        switch(led){
         case RED_LED:
-            gpiod_set_value(extDevices.leds.Gled_gpio, mode);
+            gpiod_set_value(extDevices.leds.Rled_gpio, mode);
         break;
         case GREEN_LED:
             gpiod_set_value(extDevices.leds.Gled_gpio, mode);
@@ -87,13 +86,18 @@ u8   SetLedMode(u8 led, u8 mode){
 
     return status;
 }
+EXPORT_SYMBOL(SetLedMode);
+
 
 int  GetInterruptNumber(void){
     return extDevices.countINT;
 }
+EXPORT_SYMBOL(GetInterruptNumber);
+
 
 static  irq_handler_t extGPIO_button_interrupt(unsigned int irq, void *dev_id , struct ptr_regs *regs) {
    extDevices.countINT ++;
+   printk("count of button INT %d", extDevices.countINT);
 
    return (irq_handler_t)IRQ_HANDLED;
 }
@@ -204,6 +208,7 @@ void extGPIO_button_irq_Free(void){
 }
 
 
+
 static int ExtGPIO_Init(struct platform_device *pDev){
    const struct of_device_id *match;
 
@@ -223,6 +228,7 @@ static int ExtGPIO_Init(struct platform_device *pDev){
 
     extGPIO_button_irq_init();
 
+
     dev_info(extDevices.dev, "extDriver was inited successfully!\n");
 
     return 0;
@@ -232,6 +238,13 @@ static int ExtGPIO_Init(struct platform_device *pDev){
 
 static int ExtGPIO_Deinit(struct platform_device *pDev){
     extGPIO_button_irq_Free();
+
+   SetLedMode(RED_LED, MODE_OFF);
+   SetLedMode(GREEN_LED, MODE_OFF);
+   SetLedMode(LOCK_OPEN_LED, MODE_OFF);
+   SetLedMode(LOCK_CLOSE_LED, MODE_OFF);
+   SetLockState(STATE_LOCK);
+
 
 	dev_info(extDevices.dev, "extDriver was removed successfully!\n");
 	return 0;
@@ -244,7 +257,7 @@ static int ExtGPIO_Deinit(struct platform_device *pDev){
 =====*/
 
 static const struct of_device_id extGPIO_Devices_match[] = {
-	{ .compatible = "MaGol_AlKl,externalGPIO", },
+	{ .compatible = "MaGol_OKL,externalGPIO", },
 	{ },
 };
 MODULE_DEVICE_TABLE(of, extGPIO_Devices_match);

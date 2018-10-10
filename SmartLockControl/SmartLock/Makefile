@@ -1,5 +1,6 @@
 CONFIG_MODULE_SIG=n
-obj-y :=External_GPIO_module/ SmartLock/
+
+obj-m :=SmartLockControl.o
 
 
 KDIR = ${BUILD_KERNEL}
