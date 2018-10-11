@@ -1,0 +1,29 @@
+#!/bin/bash
+
+#Script to load Smart lock module to core
+
+
+while [ ! -z "$1"  ] ; do
+        case $1 in
+           -h|--help)
+                 echo "-L|--lounch for install mode to system"
+		 echo "-C|--close  for remode mode from system"
+                ;;
+            -L|--lounch)
+                echo "Lounch Smart lock"
+                insmod extGPIO.ko
+		insmod SmartLockControl.ko
+                ;;
+           -C|--close)
+                echo "Close Smart lock"
+		rmmod SmartLockControl.ko
+		rmmod extGPIO.ko
+                ;;
+            
+        esac
+        shift
+done
+
+
+
+

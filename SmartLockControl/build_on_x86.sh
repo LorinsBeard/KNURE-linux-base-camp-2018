@@ -2,7 +2,11 @@
 
 export CROSS_COMPILE=arm-linux-gnueabi-
 
+MODNAME_ADDITATION_1F="External_GPIO_module"
+MODNAME_ADDITATION_1="extGPIO.ko"
+MODNAME_F="SmartLock"
 MODNAME="SmartLockControl.ko"
+
 OFILE="$BUILD_KERNEL/include/generated/utsrelease.h"
 MESSAGE="#define UTS_RELEASE \"4.17.11-sunxi\" "
 
@@ -21,11 +25,15 @@ while [ ! -z "$1"  ] ; do
                 echo "Build module"
 		echo "$MESSAGE" > "$OFILE"
                 make ARCH=arm
+
+		FLOCAL=`pwd`
+                cp "$FLOCAL/$MODNAME_ADDITATION_1F/$MODNAME_ADDITATION_1" $FLOCAL
+		cp "$FLOCAL/$MODNAME_F/$MODNAME" $FLOCAL
                 ;;
             --deploy)
                 echo "Deploy kernel module"
-                scp $MODNAME root@192.168.10.2:~
-                scp $BUILD_KERNEL/arch/arm/boot/dts/sun8i-h3-orangepi-one.dtb root@192.168.10.2:~
+                scp $MODNAME_ADDITATION_1 opi:~
+		scp $MODNAME opi:~
                 ;;
             --kconfig)
                 echo "configure kernel"
@@ -36,6 +44,7 @@ while [ ! -z "$1"  ] ; do
                 echo "configure kernel"
                 make ARCH=arm dtb
                 cp $BUILD_KERNEL/arch/arm/boot/dts/sun8i-h3-orangepi-one.dts ${TRAINING_ROOT}
+		scp $BUILD_KERNEL/arch/arm/boot/dts/sun8i-h3-orangepi-one.dtb opi:~
                 ;;
         esac
         shift
