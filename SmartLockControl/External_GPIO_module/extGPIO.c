@@ -190,7 +190,7 @@ int extGPIO_button_irq_init(void){
     extDevices.numberINT = gpio_to_irq(INTERRUPT_GPIO);
     dev_info(extDevices.dev, "extGPIO_button: gpio %d irq is %d \n",   INTERRUPT_GPIO, extDevices.numberINT );
 
-    int res = 0;
+    int res;
     res = request_irq( extDevices.numberINT,
                        (irq_handler_t)extGPIO_button_interrupt,
                        IRQF_TRIGGER_RISING,
