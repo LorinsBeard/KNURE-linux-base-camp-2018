@@ -90,7 +90,7 @@ EXPORT_SYMBOL(SetLedMode);
 
 
 int  GetInterruptNumber(void){
-    return extDevices.countINT;
+    return extDevices.numberINT;
 }
 EXPORT_SYMBOL(GetInterruptNumber);
 
