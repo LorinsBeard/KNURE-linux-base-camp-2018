@@ -9,31 +9,42 @@
 #include <linux/uaccess.h>
 #include <linux/err.h>
 #include <linux/cdev.h>
+#include <asm/uaccess.h>
 #include "../External_GPIO_module/extGPIO.h"
 
-//@TODO implement main logic of work
 
+MODULE_AUTHOR("MaksimHolikov, <golikov.mo@gmail.com>");
+MODULE_DESCRIPTION("Driver to implement logic of smart lock");
+MODULE_LICENSE("GPL");
+MODULE_VERSION("1.0");
+
+//@TODO implement main logic of work
 //@TODO implement passible to write data to file (LOG)
 
 #define DEVICE_NAME                "SmartLock"
 #define PERIOD_UNLOCK_TIME         5000
 #define NUMBER_OF_APPRUVED_DATA    5
 #define MAX_LOG_MESSAGE_SIZE       100
-#define LOG_FILE_PATH              "etc/value/SmartLock/log"
-#define APPROVED_NUMB_FILE_PATH    "etc/value/SmartLock/approvedNumbers"
+// #define LOG_FILE_PATH              "etc/value/SmartLock/log"
+// #define APPROVED_NUMB_FILE_PATH    "etc/SmartLock/approvedNumbers"
 
 
 
 
 typedef struct{
-  int  major;
-  bool cDevCreated;
+  //character device
+  int    major;
+  bool   cDevCreated;
+  struct class*  devClass;
+  struct device* DevDevice;
 
+  //unlock button
 	int BUTTON_IRQ;
 	int butInterrupt_Num;
 
 	u16 valueFromRFID;
 
+ //timer for autolock
 	u32 startUnlockTime;
 	struct timer_list lockOperationTimer;
 
@@ -42,30 +53,14 @@ typedef struct{
 	unsigned char appruvedNumbers[NUMBER_OF_APPRUVED_DATA];
 }elementsOfLogic_t;
 
-
 static elementsOfLogic_t logic = {0};
 
 
-static struct class*  devClass  = NULL; 
-static struct device* DevDevice = NULL;
-
-
-static void LockOperation(struct timer_list *lockOperationTimer);
-static void UnlockOperation(void);
-bool IsValueApproved(u16 readData);
-
-
-
+//===== Function for characte device ===
 static int     dev_open(struct inode *, struct file *);
 static int     dev_release(struct inode *, struct file *);
 static ssize_t dev_read(struct file *, char *, size_t, loff_t *);
 static ssize_t dev_write(struct file *, const char *, size_t, loff_t *);
-
-
-void ReadApprovedNum(void);
-void WriteLog(unsigned char *text, u16 size);
-
-
 
 static const struct file_operations dev_fOps = {
     .owner   = THIS_MODULE,
@@ -74,6 +69,16 @@ static const struct file_operations dev_fOps = {
     .write = dev_write,
     .release = dev_release,
 };
+//===========
+
+
+void LockOperation(struct timer_list *lockOperationTimer);
+void UnlockOperation(void);
+bool IsValueApproved(u16 readData);
+void ReadApprovedNum(void);
+void WriteLog(unsigned char *text, u16 size);
+int ReadFromFile(void);
+
 
 
 
@@ -143,8 +148,6 @@ void UnlockOperation(void){
 }
 
 
-
-
 bool IsValueApproved(u16 readData){
 	bool shouldUnlock = false;
 
@@ -166,39 +169,8 @@ bool IsValueApproved(u16 readData){
 
 
 /*=====
-        Functions for work with file
+        Character device functions
 =====*/
-static int dev_open(struct inode *inode, struct file *file)
-{
-   if(logic.cDevCreated){
-      return -EBUSY;
-   }
-   logic.cDevCreated = true;
-   printk(KERN_INFO "file was open");
-   return 0;
-}
-
-
-static int dev_release(struct inode *inode, struct file *file)
-{
-   logic.cDevCreated = false;
-   printk(KERN_INFO "file was close");
-   return 0;
-}
-
-static ssize_t dev_read(struct file *f, char *txt, size_t size, loff_t * off){
-  printk(KERN_ERR "===read ===");
-return 0;
-}
-
-static ssize_t dev_write(struct file *f, const char *txt, size_t size, loff_t * off){
-  printk(KERN_ERR "===write===");
-  return 0;
-}
-
-
-
-
 static int InitChDev(void){
   int res = -1;
   
@@ -214,8 +186,8 @@ static int InitChDev(void){
 
 
    // Register the device class
-   devClass = class_create(THIS_MODULE, DEVICE_NAME);
-   if (IS_ERR(devClass)){               
+   logic.devClass = class_create(THIS_MODULE, DEVICE_NAME);
+   if (IS_ERR(logic.devClass)){               
       unregister_chrdev(logic.major, DEVICE_NAME);
       logic.major = 0;
       printk(KERN_ALERT "Failed to register device class\n");
@@ -224,9 +196,9 @@ static int InitChDev(void){
    printk(KERN_INFO "device class registered correctly\n");
  
    // Register the device driver
-   DevDevice = device_create(devClass, NULL, MKDEV(logic.major, 0), NULL, DEVICE_NAME);
-   if (IS_ERR(DevDevice)){           
-      class_destroy(devClass);
+   logic.DevDevice = device_create(logic.devClass, NULL, MKDEV(logic.major, 0), NULL, DEVICE_NAME);
+   if (IS_ERR(logic.DevDevice)){           
+      class_destroy(logic.devClass);
       unregister_chrdev(logic.major, DEVICE_NAME);
       logic.major = 0;
       printk(KERN_ALERT "Failed to create the device\n");
@@ -240,18 +212,42 @@ static int InitChDev(void){
     return res;
 }
 
-static void DeinitCHhReg(void)
-{ 
+static void DeinitCHhReg(void){ 
   if(logic.major != 0){
-   device_destroy(devClass, MKDEV(logic.major, 0));     
-   class_unregister(devClass);                         
-   class_destroy(devClass);          
+   device_destroy(logic.devClass, MKDEV(logic.major, 0));     
+   class_unregister(logic.devClass);                         
+   class_destroy(logic.devClass);          
    unregister_chrdev(logic.major, DEVICE_NAME);
    printk(KERN_INFO "====module %s removed ====\n", DEVICE_NAME);
   }
 };
 
 
+static int dev_open(struct inode *inode, struct file *file){
+   if(logic.cDevCreated){
+      return -EBUSY;
+   }
+   logic.cDevCreated = true;
+   printk(KERN_INFO "file was open");
+   return 0;
+}
+
+static int dev_release(struct inode *inode, struct file *file){
+   logic.cDevCreated = false;
+   printk(KERN_INFO "file was close");
+   return 0;
+}
+
+static ssize_t dev_read(struct file *f, char *txt, size_t size, loff_t * off){
+  printk(KERN_ERR "===read ===");
+  return 0;
+}
+
+static ssize_t dev_write(struct file *f, const char *txt, size_t size, loff_t * off){
+  printk(KERN_ERR "===write===");
+  return 0;
+}
+//========================
 
 
 
@@ -265,16 +261,14 @@ void WriteLog(unsigned char *text, u16 size){
 }
 
 void ReadApprovedNum(void){
-   printk(KERN_INFO "read buff ");
-	// struct file  *aprNumFile = file_open(APPROVED_NUMB_FILE_PATH, 0, 0);
 
- //  printk("operation to open file has finished with res = %d", aprNumFile);
+  printk(KERN_INFO "Read approved keys");
 
-	// int res = file_read(aprNumFile, 0, logic.appruvedNumbers, 10);
- //  printk("operation to read file has finished with res = %d ", res);
-
-	// file_close(aprNumFile);
-   logic.appruvedNumbers[0] = 1;
+  logic.appruvedNumbers[0] = 1;
+  logic.appruvedNumbers[1] = 1578224569825478;
+  logic.appruvedNumbers[2] = 7788994456611231;
+  logic.appruvedNumbers[3] = 1789641200786054;
+  logic.appruvedNumbers[4] = 1870000658422488;
 }
 
 
@@ -289,16 +283,18 @@ static int __init SmartLockControlInit(void) {
 	printk(KERN_INFO "Smart lock start init\n");
 
     
-    logic.BUTTON_IRQ = GetInterruptNumber();
+    logic.BUTTON_IRQ = 117;//GetInterruptNumber();
     if(logic.BUTTON_IRQ == 0) {
        printk(KERN_INFO "Cached IRQ number is %d \n", logic.BUTTON_IRQ);
     	 goto error;   
-      } 
+    }    
 
     if(request_irq( logic.BUTTON_IRQ, OpenLock_btn, IRQF_SHARED, "LockBtn_handler", &logic.butInterrupt_Num )){
-      //printk(KERN_ERR "Error with create button interrupt handler by irq = %d \n", logic.BUTTON_IRQ);
-    	//goto error;
+      printk(KERN_ERR "Error with create binding interrupt handler by irq = %d \n", logic.BUTTON_IRQ);
+    	goto error;
     }
+    printk(KERN_INFO "Binde  IRQ number is %d to unloch function\n", logic.BUTTON_IRQ);
+
 
     logic.kthread = kthread_run(MainLogic, NULL, "SmartLock");
     if(logic.kthread)
@@ -312,25 +308,23 @@ static int __init SmartLockControlInit(void) {
    __init_timer(&logic.lockOperationTimer, LockOperation, 0);
    LockOperation(&logic.lockOperationTimer);   
 
+
   int res = InitChDev();
    if(res < 0){
      goto error;
    }
-   
-   
-
-  // ReadApprovedNum();
+  
+   ReadApprovedNum();
 
    SetLedMode(GREEN_LED, MODE_ON);
    printk(KERN_INFO "Smart lock control module has inited sucsessfully\n");
 
-return returnedStatus;
+  return returnedStatus;
 
-error:
-	printk(KERN_ERR "Initting process has stopped by initialize error\n");
-	SetLedMode(RED_LED, MODE_ON);
-	return -1;
-
+  error:
+  	printk(KERN_ERR "Initting process has stopped by initialize error\n");
+  	SetLedMode(RED_LED, MODE_ON);
+  	return -1;
 }
 
 
@@ -346,11 +340,3 @@ static void __exit SmartLockControlDeinit(void) {
 
 module_init(SmartLockControlInit);
 module_exit(SmartLockControlDeinit);
-
-
-
-
-MODULE_AUTHOR("MaksimHolikov, <golikov.mo@gmail.com>");
-MODULE_DESCRIPTION("Driver to implement logic of smart lock");
-MODULE_LICENSE("GPL");
-MODULE_VERSION("1.0");

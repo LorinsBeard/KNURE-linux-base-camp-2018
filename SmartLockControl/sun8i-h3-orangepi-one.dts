@@ -125,8 +125,8 @@
 
     	greenLed-gpios      = <&pio 0 1  GPIO_ACTIVE_LOW>;
     	redLed-gpios        = <&pio 0 0  GPIO_ACTIVE_LOW>;
-    	lockOpenLed-gpios   = <&pio 0 11 GPIO_ACTIVE_LOW>;
-    	lockCloseLed-gpios  = <&pio 0 12 GPIO_ACTIVE_LOW>;
+    	lockOpenLed-gpios   = <&pio 0 12 GPIO_ACTIVE_LOW>;
+    	lockCloseLed-gpios  = <&pio 0 11 GPIO_ACTIVE_LOW>;
     	unlock-gpios        = <&pio 0 6  GPIO_ACTIVE_LOW>;
     	openButton-gpios	= <&pio 0 14 GPIO_ACTIVE_LOW>;
 	};
