@@ -48,7 +48,7 @@ u8   SetLedMode(u8 led, u8 mode);
 * @brief Function for get number of button irq
 * @return value of button irq
 */
-int  GetInterruptNumber(void);
+int  GetInterruptCount(void);
 
 
 

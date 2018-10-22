@@ -1,15 +1,15 @@
 #include <linux/init.h>
 #include <linux/kernel.h>
 #include <linux/module.h>
-#include <linux/interrupt.h>
 #include <linux/fs.h>
 #include <linux/sched.h> 
 #include <linux/kthread.h>
 #include <linux/timer.h>
+#include <linux/time.h>
+#include <linux/delay.h>
 #include <linux/uaccess.h>
 #include <linux/err.h>
 #include <linux/cdev.h>
-#include <asm/uaccess.h>
 #include "../External_GPIO_module/extGPIO.h"
 
 
@@ -18,15 +18,12 @@ MODULE_DESCRIPTION("Driver to implement logic of smart lock");
 MODULE_LICENSE("GPL");
 MODULE_VERSION("1.0");
 
-//@TODO implement main logic of work
-//@TODO implement passible to write data to file (LOG)
+
 
 #define DEVICE_NAME                "SmartLock"
 #define PERIOD_UNLOCK_TIME         5000
 #define NUMBER_OF_APPRUVED_DATA    5
 #define MAX_LOG_MESSAGE_SIZE       100
-// #define LOG_FILE_PATH              "etc/value/SmartLock/log"
-// #define APPROVED_NUMB_FILE_PATH    "etc/SmartLock/approvedNumbers"
 
 
 
@@ -39,8 +36,7 @@ typedef struct{
   struct device* DevDevice;
 
   //unlock button
-	int BUTTON_IRQ;
-	int butInterrupt_Num;
+	int butOldInterruptCount;
 
 	u16 valueFromRFID;
 
@@ -72,12 +68,13 @@ static const struct file_operations dev_fOps = {
 //===========
 
 
-void LockOperation(struct timer_list *lockOperationTimer);
-void UnlockOperation(void);
-bool IsValueApproved(u16 readData);
-void ReadApprovedNum(void);
-void WriteLog(unsigned char *text, u16 size);
-int ReadFromFile(void);
+void  LockOperation(struct timer_list *lockOperationTimer);
+void  UnlockOperation(void);
+void  ReadApprovedNum(void);
+void  WriteLog(bool isButton, bool isLocked);
+void  OpenLock_btn(void);
+bool  IsValueApproved(u16 readData);
+int   ReadFromFile(void);
 
 
 
@@ -86,65 +83,68 @@ int ReadFromFile(void);
 int MainLogic(void *data){
 
 	while(!kthread_should_stop()){
-		if(logic.valueFromRFID != 0){
-			u8 readRFID_areCorrect = IsValueApproved(logic.valueFromRFID);
-			if(readRFID_areCorrect){
-				UnlockOperation();
-				
-				char txt[MAX_LOG_MESSAGE_SIZE] = {0};
-				sprintf(txt, "Lock was unlock by %d at %d \n", logic.valueFromRFID, jiffies);
-				WriteLog(txt, sizeof(txt));
-			}
-			logic.valueFromRFID = 0;
-			printk("In kthread");
-		}
+
+    u32 interruptCount = GetInterruptCount();
+    if(interruptCount > logic.butOldInterruptCount){
+       printk(KERN_INFO "Button pressed detected ");
+       logic.butOldInterruptCount = interruptCount;
+       OpenLock_btn();
+    }
+
+    u8 cardkeyExist = 0;//isCardPresent(&logic.valueFromRFID)
+    if(cardkeyExist){
+      if(logic.valueFromRFID != 0){
+        u8 readRFID_areCorrect = IsValueApproved(logic.valueFromRFID);
+        if(readRFID_areCorrect){
+          UnlockOperation();
+          
+          bool isButton = false;
+          bool isLock   = false;
+          WriteLog(isButton, isLock);
+        }
+        logic.valueFromRFID = 0;
+        printk("In kthread");
+      }
+    }
+
+    msleep(100);
 		schedule();
 	}
 	return 0;
 }
 
 
-static irqreturn_t RFID_DataReady( int irq, void *dev_id ) {
-   printk(KERN_INFO"Read value from RFID");
 
-   //logic.valueFromRFID = value from RFID module
+void  OpenLock_btn(void) {
+  UnlockOperation();
+  
+  bool isButton = true;
+  bool isLock   = false;
+  WriteLog(isButton, isLock);
 
-   return IRQ_NONE;
-}
-
-
-static irqreturn_t OpenLock_btn( int irq, void *dev_id ) {
-   printk(KERN_INFO "Button was pressed");
-   UnlockOperation();
-   
-
-   char txt[MAX_LOG_MESSAGE_SIZE] = {0};
-   sprintf(txt, "Lock was unlock by button at %d \n", jiffies);
-   WriteLog(txt, sizeof(txt));
-
-   return IRQ_NONE;
+  return IRQ_NONE;
 }
 
 void  LockOperation(struct timer_list *lockOperationTimer){
+  printk(KERN_INFO ">>>  Lock Operation");
 	SetLockState(STATE_LOCK);
 	SetLedMode(LOCK_OPEN_LED,  MODE_OFF);
 	SetLedMode(LOCK_CLOSE_LED, MODE_ON);
 
-    char txt[MAX_LOG_MESSAGE_SIZE] = {0};
-    sprintf(txt, "Lock was lock at %d \n", jiffies);
-    WriteLog(txt, sizeof(txt));
+  bool isButton = false;
+  bool isLock   = true;
+  WriteLog(isButton, isLock);
 
-
-    printk(KERN_INFO "Lock Operation");     
+  printk(KERN_INFO "-----------------");       
  }
 
 void UnlockOperation(void){
-	 SetLockState(STATE_UNLOCK);
-	 SetLedMode(LOCK_OPEN_LED,  MODE_ON);
-	 SetLedMode(LOCK_CLOSE_LED, MODE_OFF);
-
-    mod_timer( &logic.lockOperationTimer, jiffies + msecs_to_jiffies(PERIOD_UNLOCK_TIME) );
-    printk(KERN_INFO "Unlock Operation");
+  printk(KERN_INFO "<<<  Unlock Operation");
+	SetLockState(STATE_UNLOCK);
+	SetLedMode(LOCK_OPEN_LED,  MODE_ON);
+	SetLedMode(LOCK_CLOSE_LED, MODE_OFF);
+ 
+  mod_timer( &logic.lockOperationTimer, jiffies + msecs_to_jiffies(PERIOD_UNLOCK_TIME) );   
 }
 
 
@@ -252,12 +252,18 @@ static ssize_t dev_write(struct file *f, const char *txt, size_t size, loff_t * 
 
 
 
-void WriteLog(unsigned char *text, u16 size){
-  printk(KERN_INFO "write buff ");
-	// struct file  *logFile = file_open(LOG_FILE_PATH, 0, 0);
+void WriteLog(bool isButton, bool isLocked){
 
-	// file_write(logFile, 0, text, size);
-	// file_close(logFile);
+
+  if(isLocked){
+    printk(KERN_INFO "Lock was lock at %d \n", jiffies);
+  }else{
+    if(isButton){
+      printk(KERN_INFO "Lock was unlock by button at %d \n", jiffies);
+    }else{
+      printk(KERN_INFO "Lock was unlock by curd at %d \n", jiffies);
+    }    
+  }
 }
 
 void ReadApprovedNum(void){
@@ -280,21 +286,14 @@ void ReadApprovedNum(void){
 static int __init SmartLockControlInit(void) {
 	int returnedStatus = 0;
 
-	printk(KERN_INFO "Smart lock start init\n");
+	  printk(KERN_INFO "Smart lock start init\n");
 
     
-    logic.BUTTON_IRQ = 117;//GetInterruptNumber();
-    if(logic.BUTTON_IRQ == 0) {
-       printk(KERN_INFO "Cached IRQ number is %d \n", logic.BUTTON_IRQ);
+    logic.butOldInterruptCount = GetInterruptCount();
+    if(logic.butOldInterruptCount < 0) {
+       printk(KERN_ERR "Cached IRQ count is %d it smaller then 0\n", logic.butOldInterruptCount);
     	 goto error;   
-    }    
-
-    if(request_irq( logic.BUTTON_IRQ, OpenLock_btn, IRQF_SHARED, "LockBtn_handler", &logic.butInterrupt_Num )){
-      printk(KERN_ERR "Error with create binding interrupt handler by irq = %d \n", logic.BUTTON_IRQ);
-    	goto error;
     }
-    printk(KERN_INFO "Binde  IRQ number is %d to unloch function\n", logic.BUTTON_IRQ);
-
 
     logic.kthread = kthread_run(MainLogic, NULL, "SmartLock");
     if(logic.kthread)
@@ -321,6 +320,7 @@ static int __init SmartLockControlInit(void) {
 
   return returnedStatus;
 
+
   error:
   	printk(KERN_ERR "Initting process has stopped by initialize error\n");
   	SetLedMode(RED_LED, MODE_ON);
@@ -329,7 +329,6 @@ static int __init SmartLockControlInit(void) {
 
 
 static void __exit SmartLockControlDeinit(void) {
-   free_irq( logic.BUTTON_IRQ, &logic.butInterrupt_Num );
    del_timer( &logic.lockOperationTimer );  
    kthread_stop(logic.kthread);
 

@@ -89,10 +89,10 @@ u8   SetLedMode(u8 led, u8 mode){
 EXPORT_SYMBOL(SetLedMode);
 
 
-int  GetInterruptNumber(void){
-    return extDevices.numberINT;
+int  GetInterruptCount(void){
+    return extDevices.countINT;
 }
-EXPORT_SYMBOL(GetInterruptNumber);
+EXPORT_SYMBOL(GetInterruptCount);
 
 
 static  irq_handler_t extGPIO_button_interrupt(unsigned int irq, void *dev_id , struct ptr_regs *regs) {
@@ -190,7 +190,7 @@ int extGPIO_button_irq_init(void){
     extDevices.numberINT = gpio_to_irq(INTERRUPT_GPIO);
     dev_info(extDevices.dev, "extGPIO_button: gpio %d irq is %d \n",   INTERRUPT_GPIO, extDevices.numberINT );
 
-     int res = 0;
+    int res = 0;
     res = request_irq( extDevices.numberINT,
                        (irq_handler_t)extGPIO_button_interrupt,
                        IRQF_TRIGGER_RISING,
