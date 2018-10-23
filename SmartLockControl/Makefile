@@ -1,5 +1,5 @@
 CONFIG_MODULE_SIG=n
-obj-y :=External_GPIO_module/ SmartLock/
+obj-y :=External_GPIO_module/ SmartLock/ mfrc522_driver/
 
 
 KDIR = ${BUILD_KERNEL}

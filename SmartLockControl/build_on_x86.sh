@@ -1,15 +1,13 @@
 #!/bin/bash -e
 
-export CROSS_COMPILE=arm-linux-gnueabi-
+export CROSS_COMPILE=arm-linux-gnueabihf-
 
-MODNAME_ADDITATION_1F="External_GPIO_module"
-MODNAME_ADDITATION_1="extGPIO.ko"
-MODNAME_F="SmartLock"
-MODNAME="SmartLockControl.ko"
+SSH_NAME=
+BOARD_USER=armuser
+BOARD_IP=192.168.102.126
 
-OFILE="$BUILD_KERNEL/include/generated/utsrelease.h"
-MESSAGE="#define UTS_RELEASE \"4.17.11-sunxi\" "
 
+BOARD_ADDRESS=${SSH_NAME:-$BOARD_USER@$BOARD_IP}
 
 # parse commandline options
 while [ ! -z "$1"  ] ; do
@@ -19,32 +17,25 @@ while [ ! -z "$1"  ] ; do
                 ;;
             --clean)
                 echo "Clean module sources"
-                make ARCH=arm clean
+                make clean
                 ;;
             --module)
-                echo "Build module"
-		echo "$MESSAGE" > "$OFILE"
-                make ARCH=arm
-
-		FLOCAL=`pwd`
-                cp "$FLOCAL/$MODNAME_ADDITATION_1F/$MODNAME_ADDITATION_1" $FLOCAL
-		cp "$FLOCAL/$MODNAME_F/$MODNAME" $FLOCAL
+                make 
                 ;;
             --deploy)
                 echo "Deploy kernel module"
-                scp $MODNAME_ADDITATION_1 opi:~
-		scp $MODNAME opi:~
+                scp External_GPIO_module/extGPIO.ko SmartLock/SmartLockControl.ko mfrc522_driver/mfrc522.ko $BOARD_ADDRESS:~
                 ;;
             --kconfig)
                 echo "configure kernel"
-                make ARCH=arm config
+                make config
                 ;;
             
             --dtb)
                 echo "configure kernel"
-                make ARCH=arm dtb
-                cp $BUILD_KERNEL/arch/arm/boot/dts/sun8i-h3-orangepi-one.dts ${TRAINING_ROOT}
-		scp $BUILD_KERNEL/arch/arm/boot/dts/sun8i-h3-orangepi-one.dtb opi:~
+                make dtb
+                cp $BUILD_KERNEL/arch/arm/boot/dts/sun8i-h3-orangepi-one.dts ${TARGET_ROOT}
+		        scp $BUILD_KERNEL/arch/arm/boot/dts/sun8i-h3-orangepi-one.dtb $BOARD_ADDRESS:~
                 ;;
         esac
         shift
