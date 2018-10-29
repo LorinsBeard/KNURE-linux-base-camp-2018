@@ -8,52 +8,43 @@ state Initialization {
   Init_GPIO_module --> Unmount : if GPIO was not inited
 
   Init_RFID_module --> Init_stream : if RFID module was inited
-  Init_RFID_module --> Unmount : -> RED_LED if RFID module was not inited
+  Init_RFID_module --> Unmount : RED led if RFID module was not inited
 
-  Init_stream --> Stream : if stram was created
-  Init_stream --> Unmount  : -> RED_LED if stream was not inited
+  Init_stream --> Finish_of_initialize : if stram was created
+  Init_stream --> Unmount  : RED led if thread was not inited
+    
+  Finish_of_initialize: Turn on GREEN led
+  Finish_of_initialize --> Thread
 }
 
 
 
 state Unmount {
-	RED_LED: Turn on red led for 30 sec
+	RED_LED: Turn on red led
 }
 Unmount->[*]
 
 
 
-state Stream{
-	Stream: is Infinity loop for checking read  value
+state Thread{
+	Thread: is Infinity loop for checking actions
 
-	Logic: if value of ID != 0
-	Logic: Check read ID on exist
-	Logic --> Lock: if ID exist in memory
-	Logic: ID set to 0 
-}
-
-state Lock{
+	Logic_RFID: if value of ID != 0
+	Logic_RFID: Check read ID on exist	
+	Logic_RFID: ID set to 0 
+	Logic_RFID --> Lock: if ID exist in memory
+	
+	Logic_Button --> Lock: if button for open pressed
+	Logic_Button: Check state of button
+	
 	Lock: Lock should be set to reverse state
-	Lock --> Stream: if time after operation passed
 }
-
-
-
 
 
 RFID: RFID device on spi bus
 
 RFID-->RFID_module: Interrupt from RFID
 RFID_module --> RFID: Read value from device
-RFID_module --> Stream: Callback with read value
- 
-
-
-
-
-
-
-
-
+RFID_module --> Thread: Callback with read value
 
 @enduml
