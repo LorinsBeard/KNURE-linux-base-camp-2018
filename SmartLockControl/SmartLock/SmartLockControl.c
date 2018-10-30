@@ -1,3 +1,15 @@
+/*
+ * GL BaseCamp smart lock control driver header
+ * Copyright (C) 2018 Maksim Holikov <golikov.mo@gmail.com>
+ *
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+ *
+ */
+
+
 #include <linux/init.h>
 #include <linux/kernel.h>
 #include <linux/module.h>
@@ -11,6 +23,8 @@
 #include <linux/err.h>
 #include <linux/cdev.h>
 #include "../External_GPIO_module/extGPIO.h"
+#include "../mfrc522_driver/mfrc522_api.h"
+
 
 
 MODULE_AUTHOR("MaksimHolikov, <golikov.mo@gmail.com>");
@@ -22,7 +36,7 @@ MODULE_VERSION("1.0");
 
 #define DEVICE_NAME                "SmartLock"
 #define PERIOD_UNLOCK_TIME         5000
-#define NUMBER_OF_APPRUVED_DATA    5
+#define NUMBER_OF_APPRUVED_DATA    2
 #define MAX_LOG_MESSAGE_SIZE       100
 
 
@@ -37,8 +51,6 @@ typedef struct{
 
   //unlock button
 	int butOldInterruptCount;
-
-	u16 valueFromRFID;
 
  //timer for autolock
 	u32 startUnlockTime;
@@ -91,10 +103,11 @@ int MainLogic(void *data){
        OpenLock_btn();
     }
 
-    u8 cardkeyExist = 0;//isCardPresent(&logic.valueFromRFID)
+    u16 valueFromRFID = 0; 
+    u8 cardkeyExist   = isCardPresent(&valueFromRFID);
     if(cardkeyExist){
-      if(logic.valueFromRFID != 0){
-        u8 readRFID_areCorrect = IsValueApproved(logic.valueFromRFID);
+      if(valueFromRFID != 0){
+        u8 readRFID_areCorrect = IsValueApproved(valueFromRFID);
         if(readRFID_areCorrect){
           UnlockOperation();
           
@@ -102,7 +115,7 @@ int MainLogic(void *data){
           bool isLock   = false;
           WriteLog(isButton, isLock);
         }
-        logic.valueFromRFID = 0;
+        valueFromRFID = 0;
         printk("In kthread");
       }
     }
@@ -272,9 +285,6 @@ void ReadApprovedNum(void){
 
   logic.appruvedNumbers[0] = 1;
   logic.appruvedNumbers[1] = 1578224569825478;
-  logic.appruvedNumbers[2] = 7788994456611231;
-  logic.appruvedNumbers[3] = 1789641200786054;
-  logic.appruvedNumbers[4] = 1870000658422488;
 }
 
 
