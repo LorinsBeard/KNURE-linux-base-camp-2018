@@ -13,6 +13,12 @@
 #include "extGPIO.h"
 
 
+MODULE_AUTHOR("MaksimHolikov, <golikov.mo@gmail.com>");
+MODULE_DESCRIPTION("Driver to control external devices of smart lock");
+MODULE_LICENSE("GPL");
+MODULE_VERSION("1.0");
+
+
 
 #define DEVICE_NAME	"extGPIO"
 #define INTERRUPT_GPIO    ((1 - 1) * 32 + 14)   // (position of letter in alphabet - 1) * 32 + pin number   PA14
@@ -44,11 +50,17 @@ static extDevice_t extDevices;
 static const struct of_device_id extGPIO_Devices_match[];
 
 
+
+
+int res;
+u8  operationStatus;
+
+
 void SetLockState(u8 state){       
     gpiod_set_value(extDevices.lock.Unlock_gpio, state);
     extDevices.lock.state = state;
 
-    if(state = STATE_LOCK){
+    if(state == STATE_LOCK){
         printk("Lock state is LOCK");
     }else{
         printk("Lock state is UNLOCK");
@@ -64,10 +76,10 @@ EXPORT_SYMBOL(GetLockState);
 
 
 u8   SetLedMode(u8 led, u8 mode){
-    u8 status = 0;
+    operationStatus = 0;
    
     if(led < Leds_Amount){
-       status = 1;
+       operationStatus = 1;
        switch(led){
         case RED_LED:
             gpiod_set_value(extDevices.leds.Rled_gpio, mode);
@@ -84,7 +96,7 @@ u8   SetLedMode(u8 led, u8 mode){
         }
     }
 
-    return status;
+    return operationStatus;
 }
 EXPORT_SYMBOL(SetLedMode);
 
@@ -95,9 +107,9 @@ int  GetInterruptCount(void){
 EXPORT_SYMBOL(GetInterruptCount);
 
 
-static  irq_handler_t extGPIO_button_interrupt(unsigned int irq, void *dev_id , struct ptr_regs *regs) {
+static  irq_handler_t extGPIO_button_interrupt(unsigned int irq, void *dev_id) {
    extDevices.countINT ++;
-   printk("count of button INT %d", extDevices.countINT);
+   printk("count of button INT %d ", extDevices.countINT);
 
    return (irq_handler_t)IRQ_HANDLED;
 }
@@ -110,8 +122,8 @@ static  irq_handler_t extGPIO_button_interrupt(unsigned int irq, void *dev_id , 
 =====*/
 static int get_gpios_info(struct platform_device *pDev){
     struct device_node *np = pDev->dev.of_node;
-    const char *name;
-    u8     operationStatus = 0;
+    const char *name;   
+    operationStatus = 0;
     
     dev_err(extDevices.dev, "read node\n");
 
@@ -190,7 +202,7 @@ int extGPIO_button_irq_init(void){
     extDevices.numberINT = gpio_to_irq(INTERRUPT_GPIO);
     dev_info(extDevices.dev, "extGPIO_button: gpio %d irq is %d \n",   INTERRUPT_GPIO, extDevices.numberINT );
 
-    int res = 0;
+    
     res = request_irq( extDevices.numberINT,
                        (irq_handler_t)extGPIO_button_interrupt,
                        IRQF_TRIGGER_RISING,
@@ -220,8 +232,8 @@ static int ExtGPIO_Init(struct platform_device *pDev){
     }
 
 
-    int status = get_gpios_info(pDev);
-    if(!status){
+    operationStatus = get_gpios_info(pDev);
+    if(!operationStatus){
         dev_err(extDevices.dev, "failed to read get_gpios_info() \n");
         return -EINVAL;
     }
@@ -271,9 +283,3 @@ static struct platform_driver extGPIO_driver = {
     .remove     = ExtGPIO_Deinit,
 };
 module_platform_driver(extGPIO_driver);
-
-
-MODULE_AUTHOR("MaksimHolikov, <golikov.mo@gmail.com>");
-MODULE_DESCRIPTION("Driver to control external devices of smart lock");
-MODULE_LICENSE("GPL");
-MODULE_VERSION("1.0");

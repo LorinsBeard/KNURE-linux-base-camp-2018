@@ -58,7 +58,7 @@ typedef struct{
 
 	struct task_struct *kthread;
 
-	unsigned char appruvedNumbers[NUMBER_OF_APPRUVED_DATA];
+	u32 appruvedNumbers[NUMBER_OF_APPRUVED_DATA];
 }elementsOfLogic_t;
 
 static elementsOfLogic_t logic = {0};
@@ -89,30 +89,32 @@ bool  IsValueApproved(u16 readData);
 int   ReadFromFile(void);
 
 
-
-
+int res;
+int returnedStatus;
+bool isButton;
+bool isLock;
+u32 interruptCount;
+u16 valueFromRFID;
 
 int MainLogic(void *data){
 
 	while(!kthread_should_stop()){
-
-    u32 interruptCount = GetInterruptCount();
+     
+    interruptCount = GetInterruptCount();
     if(interruptCount > logic.butOldInterruptCount){
        printk(KERN_INFO "Button pressed detected ");
        logic.butOldInterruptCount = interruptCount;
        OpenLock_btn();
     }
 
-    u16 valueFromRFID = 0; 
-    u8 cardkeyExist   = isCardPresent(&valueFromRFID);
-    if(cardkeyExist){
+     
+    if(isCardPresent(&valueFromRFID)){
       if(valueFromRFID != 0){
-        u8 readRFID_areCorrect = IsValueApproved(valueFromRFID);
-        if(readRFID_areCorrect){
+        if(IsValueApproved(valueFromRFID)){
           UnlockOperation();
           
-          bool isButton = false;
-          bool isLock   = false;
+          isButton = false;
+          isLock   = false;
           WriteLog(isButton, isLock);
         }
         valueFromRFID = 0;
@@ -131,12 +133,11 @@ int MainLogic(void *data){
 void  OpenLock_btn(void) {
   UnlockOperation();
   
-  bool isButton = true;
-  bool isLock   = false;
+  isButton = true;
+  isLock   = false;
   WriteLog(isButton, isLock);
-
-  return IRQ_NONE;
 }
+
 
 void  LockOperation(struct timer_list *lockOperationTimer){
   printk(KERN_INFO ">>>  Lock Operation");
@@ -144,8 +145,8 @@ void  LockOperation(struct timer_list *lockOperationTimer){
 	SetLedMode(LOCK_OPEN_LED,  MODE_OFF);
 	SetLedMode(LOCK_CLOSE_LED, MODE_ON);
 
-  bool isButton = false;
-  bool isLock   = true;
+  isButton = false;
+  isLock   = true;
   WriteLog(isButton, isLock);
 
   printk(KERN_INFO "-----------------");       
@@ -160,14 +161,13 @@ void UnlockOperation(void){
   mod_timer( &logic.lockOperationTimer, jiffies + msecs_to_jiffies(PERIOD_UNLOCK_TIME) );   
 }
 
-
+bool shouldUnlock;
 bool IsValueApproved(u16 readData){
-	bool shouldUnlock = false;
+	  shouldUnlock= false;
 
-    u16 buferSize = sizeof(logic.appruvedNumbers);
-    if( buferSize > 0){
+    if( sizeof(logic.appruvedNumbers) > 0){
       u16 i;
-      for(i = 0; i < buferSize; i++){
+      for(i = 0; i < sizeof(logic.appruvedNumbers); i++){
       	if(logic.appruvedNumbers[i] == readData){
       		shouldUnlock = true;
       		break;
@@ -176,6 +176,7 @@ bool IsValueApproved(u16 readData){
     }else{
     	printk(KERN_INFO "Buffer of approved numbers is empty");
     }
+
 	return shouldUnlock;
 }
 
@@ -185,7 +186,7 @@ bool IsValueApproved(u16 readData){
         Character device functions
 =====*/
 static int InitChDev(void){
-  int res = -1;
+ res = -1;
   
  logic.major = register_chrdev(0, DEVICE_NAME, &dev_fOps);
  if(logic.major < 0 ){
@@ -237,12 +238,14 @@ static void DeinitCHhReg(void){
 
 
 static int dev_open(struct inode *inode, struct file *file){
-   if(logic.cDevCreated){
-      return -EBUSY;
-   }
-   logic.cDevCreated = true;
-   printk(KERN_INFO "file was open");
-   return 0;
+  res = 0;
+  if(logic.cDevCreated){
+      res = -EBUSY;
+  }else{
+    logic.cDevCreated = true;
+    printk(KERN_INFO "file was open");
+  }
+  return 0;
 }
 
 static int dev_release(struct inode *inode, struct file *file){
@@ -267,14 +270,13 @@ static ssize_t dev_write(struct file *f, const char *txt, size_t size, loff_t * 
 
 void WriteLog(bool isButton, bool isLocked){
 
-
   if(isLocked){
-    printk(KERN_INFO "Lock was lock at %d \n", jiffies);
+    printk(KERN_INFO "Lock was lock at %lu \n", jiffies);
   }else{
     if(isButton){
-      printk(KERN_INFO "Lock was unlock by button at %d \n", jiffies);
+      printk(KERN_INFO "Lock was unlock by button at %lu \n", jiffies);
     }else{
-      printk(KERN_INFO "Lock was unlock by curd at %d \n", jiffies);
+      printk(KERN_INFO "Lock was unlock by curd at %lu \n", jiffies);
     }    
   }
 }
@@ -284,7 +286,7 @@ void ReadApprovedNum(void){
   printk(KERN_INFO "Read approved keys");
 
   logic.appruvedNumbers[0] = 1;
-  logic.appruvedNumbers[1] = 1578224569825478;
+  logic.appruvedNumbers[1] = 5;
 }
 
 
@@ -294,31 +296,29 @@ void ReadApprovedNum(void){
 =====*/
 
 static int __init SmartLockControlInit(void) {
-	int returnedStatus = 0;
+  returnedStatus = 0;
 
-	  printk(KERN_INFO "Smart lock start init\n");
+	printk(KERN_INFO "Smart lock start init\n");
 
     
-    logic.butOldInterruptCount = GetInterruptCount();
-    if(logic.butOldInterruptCount < 0) {
-       printk(KERN_ERR "Cached IRQ count is %d it smaller then 0\n", logic.butOldInterruptCount);
-    	 goto error;   
-    }
+  logic.butOldInterruptCount = GetInterruptCount();
+  if(logic.butOldInterruptCount < 0) {
+     printk(KERN_ERR "Cached IRQ count is %d it smaller then 0\n", logic.butOldInterruptCount);
+   	 goto error;   
+  }
 
-    logic.kthread = kthread_run(MainLogic, NULL, "SmartLock");
-    if(logic.kthread)
-        printk(KERN_INFO "Thread created successfully\n");
-    else{
-        printk(KERN_ERR "Thread creation failed\n");
-        goto error;
-    }
+  logic.kthread = kthread_run(MainLogic, NULL, "SmartLock");
+  if(logic.kthread)
+      printk(KERN_INFO "Thread created successfully\n");
+  else{
+      printk(KERN_ERR "Thread creation failed\n");
+      goto error;
+  }
 
-
-   __init_timer(&logic.lockOperationTimer, LockOperation, 0);
-   LockOperation(&logic.lockOperationTimer);   
-
-
-  int res = InitChDev();
+  __init_timer(&logic.lockOperationTimer, LockOperation, 0);
+  LockOperation(&logic.lockOperationTimer);
+  
+  res = InitChDev();
    if(res < 0){
      goto error;
    }
