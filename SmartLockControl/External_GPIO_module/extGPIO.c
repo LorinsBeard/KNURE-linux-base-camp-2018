@@ -26,6 +26,7 @@ MODULE_VERSION("1.0");
 
 typedef struct{
     struct gpio_desc *Unlock_gpio;
+    struct gpio_desc *Lock_gpio;
     u8     state;
 }Lock_t;
 
@@ -56,13 +57,16 @@ int res;
 u8  operationStatus;
 
 
-void SetLockState(u8 state){       
-    gpiod_set_value(extDevices.lock.Unlock_gpio, state);
+void SetLockState(u8 state){
     extDevices.lock.state = state;
 
     if(state == STATE_LOCK){
+        gpiod_set_value(extDevices.lock.Unlock_gpio, STATE_UNLOCK);
+        gpiod_set_value(extDevices.lock.Lock_gpio, STATE_LOCK);
         printk("Lock state is LOCK");
     }else{
+        gpiod_set_value(extDevices.lock.Unlock_gpio, STATE_LOCK);
+        gpiod_set_value(extDevices.lock.Lock_gpio, STATE_UNLOCK);
         printk("Lock state is UNLOCK");
     }
 }
@@ -178,6 +182,15 @@ static int get_gpios_info(struct platform_device *pDev){
         }
         if(!gpiod_direction_output(extDevices.lock.Unlock_gpio, 1))
            dev_info(extDevices.dev, "unlock-gpios set as OUT\n");
+
+       //Lock 
+        extDevices.lock.Lock_gpio = devm_gpiod_get(extDevices.dev, "lock", GPIOD_OUT_HIGH);
+        if (IS_ERR(extDevices.lock.Lock_gpio)) {
+            dev_err(extDevices.dev, "fail to get unlock-gpios()\n");
+            return EINVAL;
+        }
+        if(!gpiod_direction_output(extDevices.lock.Lock_gpio, 1))
+           dev_info(extDevices.dev, "lock-gpios set as OUT\n");
        
         
         operationStatus = 1;
