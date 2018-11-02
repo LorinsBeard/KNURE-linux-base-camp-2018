@@ -52,22 +52,21 @@ static struct mfrc522_data *rfid;
 
 /*-------------Functions definitions-------------*/
 
-static int PCD_WriteRegister(PCD_Register reg, uint8_t *buff, uint8_t length)
+static int PCD_WriteRegister(uint8_t *reg, uint8_t *buff, uint8_t length)
 {
 	int returnedValue = -1;
-	uint8_t tmpReg = reg;
 
-	returnedValue = spi_write(rfid->spi, &tmpReg, 1);
+	returnedValue = spi_write(rfid->spi, reg, 1);
 	returnedValue = spi_write(rfid->spi, buff, length);
 
 	return returnedValue;
 }
 
-static int PCD_ReadRegister(PCD_Register reg, uint8_t *buff, uint8_t length, uint8_t rxAlign)
+static int PCD_ReadRegister(uint8_t *reg, uint8_t *buff, uint8_t length, uint8_t rxAlign)
 {
 	int returnedValue = -1;
 
-	uint8_t address = 0x80 | reg;
+	uint8_t address = 0x80 | *reg;
 	uint8_t index = 0;
 	length = length - 1;
 	returnedValue = spi_write(rfid->spi, &address, 1);
@@ -91,7 +90,7 @@ static int PCD_ReadRegister(PCD_Register reg, uint8_t *buff, uint8_t length, uin
 	return returnedValue;
 }
 
-static int PCD_SetRegisterBitMask(PCD_Register reg, uint8_t mask)
+static int PCD_SetRegisterBitMask(uint8_t *reg, uint8_t mask)
 {
 	int returnedValue = -1;
 	uint8_t tmpValue;
@@ -103,7 +102,7 @@ static int PCD_SetRegisterBitMask(PCD_Register reg, uint8_t mask)
 	return returnedValue;
 }
 
-static int PCD_ClearRegisterBitMask(PCD_Register reg, uint8_t mask)
+static int PCD_ClearRegisterBitMask(uint8_t *reg, uint8_t mask)
 {
 	int returnedValue = -1;
 	uint8_t tmpValue;
@@ -128,10 +127,10 @@ static int PCD_AntennaOn(void)
 	int returnedValue = -1;
 	uint8_t value = 0;
 
-	returnedValue = PCD_ReadRegister(TxControlReg, &value, 1, 0);
+	returnedValue = PCD_ReadRegister(&PCD_Registers[TxControlReg], &value, 1, 0);
 	if ((value & 0x03) != 0x03) {
 		uint8_t tmpValue = value | 0x03;
-		returnedValue = PCD_WriteRegister(TxControlReg, &tmpValue, 1);
+		returnedValue = PCD_WriteRegister(&PCD_Registers[TxControlReg], &tmpValue, 1);
 	}
 
 	return returnedValue;
@@ -141,7 +140,7 @@ static int PCD_AntennaOff(void)
 {
 	int returnedValue = -1;
 
-	returnedValue = PCD_ClearRegisterBitMask(TxControlReg, 0x03);
+	returnedValue = PCD_ClearRegisterBitMask(&PCD_Registers[TxControlReg], 0x03);
 
 	return returnedValue;
 }
@@ -157,27 +156,27 @@ StatusCode PCD_CalculateCRC(	uint8_t *data,		///< In: Pointer to the data to tra
 					 ) {
 	uint8_t tmpValue = 0x00;
 
-	PCD_WriteRegister(CommandReg, PCD_Idle, 1);		// Stop any active command.
+	PCD_WriteRegister(&PCD_Registers[CommandReg], &PCD_Commands[PCD_Idle], 1);		// Stop any active command.
 	tmpValue = 0x04;
-	PCD_WriteRegister(DivIrqReg, 0x04, 1);				// Clear the CRCIRq interrupt request bit
+	PCD_WriteRegister(&PCD_Registers[DivIrqReg], &tmpValue, 1);				// Clear the CRCIRq interrupt request bit
 	tmpValue = 0x80;
-	PCD_WriteRegister(FIFOLevelReg, 0x80, 1);			// FlushBuffer = 1, FIFO initialization
-	PCD_WriteRegister(FIFODataReg, data, length);	// Write data to the FIFO
-	PCD_WriteRegister(CommandReg, PCD_CalcCRC, 1);		// Start the calculation
+	PCD_WriteRegister(&PCD_Registers[FIFOLevelReg], &tmpValue, 1);			// FlushBuffer = 1, FIFO initialization
+	PCD_WriteRegister(&PCD_Registers[FIFODataReg], data, length);	// Write data to the FIFO
+	PCD_WriteRegister(&PCD_Registers[CommandReg], &PCD_Commands[PCD_CalcCRC], 1);		// Start the calculation
 	
 	uint16_t i = 5000;
 	// Wait for the CRC calculation to complete. Each iteration of the while-loop takes 17.73us.
 	for (; i > 0; i--) {
 		// DivIrqReg[7..0] bits are: Set2 reserved reserved MfinActIRq reserved CRCIRq reserved reserved
 		tmpValue = 0;
-		PCD_ReadRegister(DivIrqReg, tmpValue, 1, 0);
+		PCD_ReadRegister(&PCD_Registers[DivIrqReg], &tmpValue, 1, 0);
 		if (tmpValue & 0x04) {									// CRCIRq bit set - calculation done
-			PCD_WriteRegister(CommandReg, PCD_Idle, 1);	// Stop calculating CRC for new content in the FIFO.
+			PCD_WriteRegister(&PCD_Registers[CommandReg], &PCD_Commands[PCD_Idle], 1);	// Stop calculating CRC for new content in the FIFO.
 			// Transfer the result from the registers to the result buffer
 			//result[0] = 
-			PCD_ReadRegister(CRCResultRegL, result, 1, 0);
+			PCD_ReadRegister(&PCD_Registers[CRCResultRegL], result, 1, 0);
 			//result[1] =
-			PCD_ReadRegister(CRCResultRegH, &result[1], 1, 0);
+			PCD_ReadRegister(&PCD_Registers[CRCResultRegH], &result[1], 1, 0);
 			return STATUS_OK;
 		}
 
@@ -208,7 +207,7 @@ StatusCode PCD_TransceiveData(	uint8_t *sendData,			///< Pointer to the data to 
 								uint8_t checkCRC		///< In: True => The last two uint8_ts of the response is assumed to be a CRC_A that must be validated.
 								 ) {
 	uint8_t waitIRq = 0x30;		// RxIRq and IdleIRq
-	return PCD_CommunicateWithPICC(PCD_Transceive, waitIRq, sendData, sendLen, backData, backLen, validBits, rxAlign, checkCRC);
+	return PCD_CommunicateWithPICC(&PCD_Registers[PCD_Transceive], waitIRq, sendData, sendLen, backData, backLen, validBits, rxAlign, checkCRC);
 } // End PCD_TransceiveData()
 
 /**
@@ -217,7 +216,7 @@ StatusCode PCD_TransceiveData(	uint8_t *sendData,			///< Pointer to the data to 
  *
  * @return STATUS_OK on success, STATUS_??? otherwise.
  */
-StatusCode PCD_CommunicateWithPICC(	uint8_t command,			///< The command to execute. One of the PCD_Command enums.
+StatusCode PCD_CommunicateWithPICC(	uint8_t *command,			///< The command to execute. One of the PCD_Command enums.
 									uint8_t waitIRq,			///< The bits in the ComIrqReg register that signals successful completion of the command.
 									uint8_t *sendData,			///< Pointer to the data to transfer to the FIFO.
 									uint8_t sendLen,			///< Number of uint8_ts to transfer to the FIFO.
@@ -233,17 +232,17 @@ StatusCode PCD_CommunicateWithPICC(	uint8_t command,			///< The command to execu
 	uint8_t tmpValue = 0x00;
 
 
-	PCD_WriteRegister(CommandReg, PCD_Idle, 1);			// Stop any active command.
+	PCD_WriteRegister(&PCD_Registers[CommandReg], &PCD_Commands[PCD_Idle], 1);			// Stop any active command.
 	tmpValue = 0x7F;
-	PCD_WriteRegister(ComIrqReg, 0x7F, 1);					// Clear all seven interrupt request bits
+	PCD_WriteRegister(&PCD_Registers[ComIrqReg], &tmpValue, 1);					// Clear all seven interrupt request bits
 	tmpValue = 0x80;
-	PCD_WriteRegister(FIFOLevelReg, 0x80, 1);				// FlushBuffer = 1, FIFO initialization
-	PCD_WriteRegister(FIFODataReg, sendLen, sendData);	// Write sendData to the FIFO
-	PCD_WriteRegister(BitFramingReg, bitFraming, 1);		// Bit adjustments
-	PCD_WriteRegister(CommandReg, command, 1);				// Execute the command
+	PCD_WriteRegister(&PCD_Registers[FIFOLevelReg], &tmpValue, 1);				// FlushBuffer = 1, FIFO initialization
+	PCD_WriteRegister(&PCD_Registers[FIFODataReg], sendData, sendLen);	// Write sendData to the FIFO
+	PCD_WriteRegister(&PCD_Registers[BitFramingReg], &bitFraming, 1);		// Bit adjustments
+	PCD_WriteRegister(&PCD_Registers[CommandReg], command, 1);				// Execute the command
 	if (command == PCD_Transceive) {
 		tmpValue = 0x80;
-		PCD_SetRegisterBitMask(BitFramingReg, 0x80);	// StartSend=1, transmission of data starts
+		PCD_SetRegisterBitMask(&PCD_Registers[BitFramingReg], 0x80);	// StartSend=1, transmission of data starts
 	}
 	
 	// Wait for the command to complete.
@@ -253,7 +252,7 @@ StatusCode PCD_CommunicateWithPICC(	uint8_t command,			///< The command to execu
 	uint16_t i;
 	for (i = 2000; i > 0; i--) {
 		uint8_t tmpBuff = 0;
-		PCD_ReadRegister(ComIrqReg, &tmpBuff, 1, 0);	// ComIrqReg[7..0] bits are: Set1 TxIRq RxIRq IdleIRq HiAlertIRq LoAlertIRq ErrIRq TimerIRq
+		PCD_ReadRegister(&PCD_Registers[ComIrqReg], &tmpBuff, 1, 0);	// ComIrqReg[7..0] bits are: Set1 TxIRq RxIRq IdleIRq HiAlertIRq LoAlertIRq ErrIRq TimerIRq
 		if (tmpBuff & waitIRq) {					// One of the interrupts that signal success has been set.
 			break;
 		}
@@ -269,7 +268,7 @@ StatusCode PCD_CommunicateWithPICC(	uint8_t command,			///< The command to execu
 	
 	// Stop now if any errors except collisions were detected.
 	uint8_t errorRegValue = 0;
-	PCD_ReadRegister(ErrorReg, &errorRegValue, 1, 0); // ErrorReg[7..0] bits are: WrErr TempErr reserved BufferOvfl CollErr CRCErr ParityErr ProtocolErr
+	PCD_ReadRegister(&PCD_Registers[ErrorReg], &errorRegValue, 1, 0); // ErrorReg[7..0] bits are: WrErr TempErr reserved BufferOvfl CollErr CRCErr ParityErr ProtocolErr
 	if (errorRegValue & 0x13) {	 // BufferOvfl ParityErr ProtocolErr
 		return STATUS_ERROR;
 	}
@@ -279,14 +278,14 @@ StatusCode PCD_CommunicateWithPICC(	uint8_t command,			///< The command to execu
 	// If the caller wants data back, get it from the MFRC522.
 	if (backData && backLen) {
 		uint8_t resLen = 0;
-		PCD_ReadRegister(FIFOLevelReg, &resLen, 1, 0);	// Number of uint8_ts in the FIFO
+		PCD_ReadRegister(&PCD_Registers[FIFOLevelReg], &resLen, 1, 0);	// Number of uint8_ts in the FIFO
 		if (resLen > *backLen) {
 			return STATUS_NO_ROOM;
 		}
 		*backLen = resLen;											// Number of uint8_ts returned
-		PCD_ReadRegister(FIFODataReg, backData, resLen, rxAlign);	// Get received data from FIFO
+		PCD_ReadRegister(&PCD_Registers[FIFODataReg], backData, resLen, rxAlign);	// Get received data from FIFO
 		_validBits = 0;
-		PCD_ReadRegister(ControlReg, &_validBits, 1, 0); 
+		PCD_ReadRegister(&PCD_Registers[ControlReg], &_validBits, 1, 0); 
 		_validBits = _validBits & 0x07;		// RxLastBits[2:0] indicates the number of valid bits in the last received uint8_t. If this value is 000b, the whole uint8_t is valid.
 		if (validBits) {
 			*validBits = _validBits;
@@ -328,18 +327,18 @@ StatusCode PCD_CommunicateWithPICC(	uint8_t command,			///< The command to execu
 StatusCode PICC_RequestA(	uint8_t *bufferATQA,	///< The buffer to store the ATQA (Answer to request) in
 							uint8_t *bufferSize	///< Buffer size, at least two uint8_ts. Also number of uint8_ts returned if STATUS_OK.
 										) {
-	return PICC_REQA_or_WUPA(PICC_CMD_REQA, bufferATQA, bufferSize);
+	return PICC_REQA_or_WUPA(&PICC_Commands[PICC_CMD_REQA], bufferATQA, bufferSize);
 } // End PICC_RequestA()
 
 
 StatusCode PICC_WakeupA(	uint8_t *bufferATQA,	///< The buffer to store the ATQA (Answer to request) in
 							uint8_t *bufferSize	///< Buffer size, at least two uint8_ts. Also number of uint8_ts returned if STATUS_OK.
 										) {
-	return PICC_REQA_or_WUPA(PICC_CMD_WUPA, bufferATQA, bufferSize);
+	return PICC_REQA_or_WUPA(&PICC_Commands[PICC_CMD_WUPA], bufferATQA, bufferSize);
 } 
 
 
-StatusCode PICC_REQA_or_WUPA(	uint8_t command, 		///< The command to send - PICC_CMD_REQA or PICC_CMD_WUPA
+StatusCode PICC_REQA_or_WUPA(	uint8_t *command, 		///< The command to send - PICC_CMD_REQA or PICC_CMD_WUPA
 								uint8_t *bufferATQA,	///< The buffer to store the ATQA (Answer to request) in
 								uint8_t *bufferSize	///< Buffer size, at least two uint8_ts. Also number of uint8_ts returned if STATUS_OK.
 											) {
@@ -350,9 +349,9 @@ StatusCode PICC_REQA_or_WUPA(	uint8_t command, 		///< The command to send - PICC
 		return STATUS_NO_ROOM;
 	}
 
-	PCD_ClearRegisterBitMask(CollReg, 0x80);		// ValuesAfterColl=1 => Bits received after collision are cleared.
+	PCD_ClearRegisterBitMask(&PCD_Registers[CollReg], 0x80);		// ValuesAfterColl=1 => Bits received after collision are cleared.
 	validBits = 7;									// For REQA and WUPA we need the short frame format - transmit only 7 bits of the last (and only) uint8_t. TxLastBits = BitFramingReg[2..0]
-	status = PCD_TransceiveData(&command, 1, bufferATQA, bufferSize, &validBits, 0, 0);
+	status = PCD_TransceiveData(command, 1, bufferATQA, bufferSize, &validBits, 0, 0);
 
 	if (status != STATUS_OK) {
 		return status;
@@ -382,6 +381,7 @@ StatusCode PICC_Select(	CardUid_t *uid,			///< Pointer to Uid struct. Normally o
 	uint8_t txLastBits;				// Used in BitFramingReg. The number of valid bits in the last transmitted uint8_t. 
 	uint8_t *responseBuffer;
 	uint8_t responseLength;
+	uint8_t tmpValue;
 	
 	// Description of buffer structure:
 	//		Byte 0: SEL 				Indicates the Cascade Level: PICC_CMD_SEL_CL1, PICC_CMD_SEL_CL2 or PICC_CMD_SEL_CL3
@@ -411,7 +411,7 @@ StatusCode PICC_Select(	CardUid_t *uid,			///< Pointer to Uid struct. Normally o
 	}
 	
 	// Prepare MFRC522
-	PCD_ClearRegisterBitMask(CollReg, 0x80);		// ValuesAfterColl=1 => Bits received after collision are cleared.
+	PCD_ClearRegisterBitMask(&PCD_Registers[CollReg], 0x80);		// ValuesAfterColl=1 => Bits received after collision are cleared.
 	
 	// Repeat Cascade Level loop until we have a complete UID.
 	uidComplete = false;
@@ -500,13 +500,14 @@ StatusCode PICC_Select(	CardUid_t *uid,			///< Pointer to Uid struct. Normally o
 			
 			// Set bit adjustments
 			rxAlign = txLastBits;											// Having a separate variable is overkill. But it makes the next line easier to read.
-			PCD_WriteRegister(BitFramingReg, (rxAlign << 4) + txLastBits, 1);	// RxAlign = BitFramingReg[6..4]. TxLastBits = BitFramingReg[2..0]
+			tmpValue = (rxAlign << 4) + txLastBits;
+			PCD_WriteRegister(&PCD_Registers[BitFramingReg], &tmpValue, 1);	// RxAlign = BitFramingReg[6..4]. TxLastBits = BitFramingReg[2..0]
 			
 			// Transmit the buffer and receive the response.
 			result = PCD_TransceiveData(buffer, bufferUsed, responseBuffer, &responseLength, &txLastBits, rxAlign, 0);
 			if (result == STATUS_COLLISION) { // More than one PICC in the field => collision.
 				uint8_t valueOfCollReg; 
-				PCD_ReadRegister(CollReg, &valueOfCollReg, 1, 0); // CollReg[7..0] bits are: ValuesAfterColl reserved CollPosNotValid CollPos[4:0]
+				PCD_ReadRegister(&PCD_Registers[CollReg], &valueOfCollReg, 1, 0); // CollReg[7..0] bits are: ValuesAfterColl reserved CollPosNotValid CollPos[4:0]
 				if (valueOfCollReg & 0x20) { // CollPosNotValid
 					return STATUS_COLLISION; // Without a valid collision position we cannot continue
 				}
@@ -612,11 +613,6 @@ StatusCode PICC_HaltA(void) {
 
 
 
-
-
-
-
-
 /**
  * Returns true if a PICC responds to PICC_CMD_REQA.
  * Only "new" cards in state IDLE are invited. Sleeping cards in state HALT are ignored.
@@ -628,11 +624,11 @@ int PICC_IsNewCardPresent() {
 	uint8_t bufferSize = sizeof(bufferATQA);
 	uint8_t tmpValue = 0x00;
 	// Reset baud rates
-	PCD_WriteRegister(TxModeReg, &tmpValue, 1);
-	PCD_WriteRegister(RxModeReg, &tmpValue, 1);
+	PCD_WriteRegister(&PCD_Registers[TxModeReg], &tmpValue, 1);
+	PCD_WriteRegister(&PCD_Registers[RxModeReg], &tmpValue, 1);
 	// Reset ModWidthReg
 	tmpValue = 0x26;
-	PCD_WriteRegister(ModWidthReg, &tmpValue, 1);
+	PCD_WriteRegister(&PCD_Registers[ModWidthReg], &tmpValue, 1);
 
 	StatusCode result = PICC_RequestA(bufferATQA, &bufferSize);
 
@@ -687,25 +683,25 @@ static int initMFRC522(struct spi_device *spidev)
 	PCD_HardReset();
 	
 	value = 0x00;
-	PCD_WriteRegister(TxModeReg, &value, 1);
-	PCD_WriteRegister(RxModeReg, &value, 1);
+	PCD_WriteRegister(&PCD_Registers[TxModeReg], &value, 1);
+	PCD_WriteRegister(&PCD_Registers[RxModeReg], &value, 1);
 	
 	value = 0x26;
-	PCD_WriteRegister(ModWidthReg, &value, 1);
+	PCD_WriteRegister(&PCD_Registers[ModWidthReg], &value, 1);
 
 	value = 0x80;
-	PCD_WriteRegister(TModeReg, &value, 1);			
+	PCD_WriteRegister(&PCD_Registers[TModeReg], &value, 1);			
 	value = 0xA9;
-	PCD_WriteRegister(TPrescalerReg, &value, 1);		
+	PCD_WriteRegister(&PCD_Registers[TPrescalerReg], &value, 1);		
 	value = 0x03;
-	PCD_WriteRegister(TReloadRegH, &value, 1);		
+	PCD_WriteRegister(&PCD_Registers[TReloadRegH], &value, 1);		
 	value = 0xE8;
-	PCD_WriteRegister(TReloadRegL, &value, 1);
+	PCD_WriteRegister(&PCD_Registers[TReloadRegL], &value, 1);
 	
 	value = 0x40;
-	PCD_WriteRegister(TxASKReg, &value, 1);		
+	PCD_WriteRegister(&PCD_Registers[TxASKReg], &value, 1);		
 	value = 0x3D;
-	PCD_WriteRegister(ModeReg, &value, 1);		
+	PCD_WriteRegister(&PCD_Registers[ModeReg], &value, 1);		
 	PCD_AntennaOn();
 
 	return 0;
