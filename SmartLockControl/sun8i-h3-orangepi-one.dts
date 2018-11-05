@@ -123,12 +123,13 @@
 
     	pinctrl-0 			= <&extGPIO_opc>;
 
-    	greenLed-gpios      = <&pio 0 1  GPIO_ACTIVE_LOW>;
-    	redLed-gpios        = <&pio 0 0  GPIO_ACTIVE_LOW>;
-    	lockOpenLed-gpios   = <&pio 0 12 GPIO_ACTIVE_LOW>;
-    	lockCloseLed-gpios  = <&pio 0 11 GPIO_ACTIVE_LOW>;
-    	unlock-gpios        = <&pio 0 6  GPIO_ACTIVE_LOW>;
-    	openButton-gpios	= <&pio 0 14 GPIO_ACTIVE_LOW>;
+    	greenLed-gpios      = <&pio 0 1   GPIO_ACTIVE_LOW>;
+    	redLed-gpios        = <&pio 0 0   GPIO_ACTIVE_LOW>;
+    	lockOpenLed-gpios   = <&pio 0 6   GPIO_ACTIVE_LOW>;
+    	lockCloseLed-gpios  = <&pio 0 13  GPIO_ACTIVE_LOW>;
+    	unlock-gpios        = <&pio 0 11  GPIO_ACTIVE_LOW>;
+    	lock-gpios          = <&pio 0 12  GPIO_ACTIVE_LOW>;     
+    	openButton-gpios	= <&pio 0 14  GPIO_ACTIVE_LOW>;
 	};
 
 };
@@ -196,7 +197,7 @@
 	};
 
     extGPIO_opc: ExtDev_pins {
-    	pins = "PA0", "PA1", "PA6", "PA11", "PA12", "PA14";
+    	pins = "PA1", "PA0", "PA6", "PA13", "PA11", "PA12", "PA14";
 		function = "gpio_out";
     }; 
 };
@@ -267,7 +268,8 @@
 		label = "MFRC522 contactless reader/writer driver";
 
 		spi-max-frequency = <24000000>;
-
+        buswidth = <8>;
+        
 		reset-gpios = <&pio 0 19 GPIO_ACTIVE_LOW>;
 		irq-gpios    = <&pio 0 7 GPIO_ACTIVE_LOW>;
 
