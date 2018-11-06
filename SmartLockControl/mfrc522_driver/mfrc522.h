@@ -8,7 +8,8 @@
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
  *
  */
-
+#ifndef MFRC522_H
+#define MFRC522_H
 
 // MFRC522 registers. Described in chapter 9 of the datasheet.
 // When using SPI all addresses are shifted one bit left in the "SPI address uint8_t" (section 8.1.2.3)
@@ -65,7 +66,7 @@ typedef enum {
 	TestADCReg
 } PCD_Register_t;
 
-static const uint8_t PCD_Registers[] = {
+static /*const*/ uint8_t PCD_Registers[] = {
 	0x01 << 1,	// starts and stops command execution
 	0x02 << 1,	// enable and disable interrupt request control bits
 	0x03 << 1,	// enable and disable interrupt request control bits
@@ -133,7 +134,7 @@ typedef enum {
 	PCD_SoftReset
 } PCD_Command_t;
 
-static const uint8_t PCD_Commands[] = {
+static /*const*/ uint8_t PCD_Commands[] = {
 	0x00,		// no action, cancels current command execution
 	0x01,		// stores 25 uint8_ts into the internal buffer
 	0x02,		// generates a 10-uint8_t random ID number
@@ -167,7 +168,7 @@ typedef enum {
 	PICC_CMD_UL_WRITE
 } PICC_Command;
 
-static const uint8_t PICC_Commands[] = {
+static /*const*/ uint8_t PICC_Commands[] = {
 	0x26,		// REQuest command, Type A. Invites PICCs in state IDLE to go to READY and prepare for anticollision or selection. 7 bit frame.
 	0x52,		// Wake-UP command, Type A. Invites PICCs in state IDLE and HALT to go to READY(*) and prepare for anticollision or selection. 7 bit frame.
 	0x88,		// Cascade Tag. Not really a command, but used during anti collision.
@@ -227,12 +228,25 @@ typedef struct {
 	uint8_t		sak;			// The SAK (Select acknowledge) byte returned from the PICC after successful selection.
 } CardUid_t;
 
+const uint8_t MFRC522_firmware_referenceV2_0[] = {
+	0x00, 0xEB, 0x66, 0xBA, 0x57, 0xBF, 0x23, 0x95,
+	0xD0, 0xE3, 0x0D, 0x3D, 0x27, 0x89, 0x5C, 0xDE,
+	0x9D, 0x3B, 0xA7, 0x00, 0x21, 0x5B, 0x89, 0x82,
+	0x51, 0x3A, 0xEB, 0x02, 0x0C, 0xA5, 0x00, 0x49,
+	0x7C, 0x84, 0x4D, 0xB3, 0xCC, 0xD2, 0x1B, 0x81,
+	0x5D, 0x48, 0x76, 0xD5, 0x71, 0x61, 0x21, 0xA9,
+	0x86, 0x96, 0x83, 0x38, 0xCF, 0x9D, 0x5B, 0x6D,
+	0xDC, 0x15, 0xBA, 0x3E, 0x7D, 0x95, 0x3B, 0x2F
+};
+
 
 static int PCD_WriteRegister(uint8_t *reg, uint8_t *buff, uint8_t length);
+static int PCD_ReadOneRegister(uint8_t *reg, uint8_t *buff);
 static int PCD_ReadRegister(uint8_t *reg, uint8_t *buff, uint8_t length, uint8_t rxAlign);
 static int PCD_SetRegisterBitMask(uint8_t *reg, uint8_t mask);
 static int PCD_ClearRegisterBitMask(uint8_t *reg, uint8_t mask);
 static int PCD_HardReset(void);
+static int PCD_SReset(void);
 static int PCD_AntennaOn(void);
 static int PCD_AntennaOff(void);
 StatusCode PCD_CalculateCRC(uint8_t *data, uint8_t length, uint8_t *result);
@@ -249,7 +263,14 @@ StatusCode PICC_WakeupA(uint8_t *bufferATQA, uint8_t *bufferSize);
 StatusCode PICC_REQA_or_WUPA(uint8_t *command, uint8_t *bufferATQA, uint8_t *bufferSize);
 StatusCode PICC_Select(CardUid_t *uid, uint8_t validBits /*= 0*/);
 StatusCode PICC_HaltA(void);
+int PCD_PerformSelfTest(void);
 
-uint8_t getID(void);
+int getID(void);
 
 static int initMFRC522(struct spi_device *spidev);
+
+
+
+//int isCardPresent(uint32_t *uid);
+
+#endif //MFRC522_H

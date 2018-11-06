@@ -8,5 +8,8 @@
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
  *
  */
+#ifndef MFRC522_API_H
+#define MFRC522_API_H
+int isCardPresent(uint32_t *uid);
 
-int isCardPresent(void *uid);
+#endif //MFRC522_API_H
