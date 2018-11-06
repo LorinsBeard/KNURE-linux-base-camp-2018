@@ -475,7 +475,7 @@ StatusCode PCD_CommunicateWithPICC(	uint8_t *command,			///< The command to exec
 	}
 	// 35.7ms and nothing happend. Communication with the MFRC522 might be down.
 	if (i == 0) {
-		DEBUG_ERROR("Exit from PCD_CommunicateWithPICC - timeout.");
+		//DEBUG_ERROR("Exit from PCD_CommunicateWithPICC - timeout.");
 		PCD_ReadOneRegister(&PCD_Registers[VersionReg], &tmpBuff);
 		//printk(KERN_INFO "But before - readed value: %X", tmpBuff);
 		//PCD_SReset();
@@ -1198,13 +1198,13 @@ int isCardPresent(uint32_t *uid)
 			tmpValue|= rfid->readCard[i];
 			tmpValue = tmpValue<<8;
 		}*/
-		tmpValue|= rfid->readCard[3];
-		tmpValue = tmpValue<<8;
-		tmpValue|= rfid->readCard[2];
+		tmpValue|= rfid->readCard[0];
 		tmpValue = tmpValue<<8;
 		tmpValue|= rfid->readCard[1];
 		tmpValue = tmpValue<<8;
-		tmpValue|= rfid->readCard[0];
+		tmpValue|= rfid->readCard[2];
+		tmpValue = tmpValue<<8;
+		tmpValue|= rfid->readCard[3];
 		*uid = tmpValue;
 
 		rfid->isThereCard = 0;

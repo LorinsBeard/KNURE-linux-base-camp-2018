@@ -118,7 +118,7 @@ int MainTheard(void *data){
     }
      
     if( (isCardPresent(&valueFromRFID)) > 0){
-    	printk(KERN_INFO "read val %d", valueFromRFID);
+    	printk(KERN_INFO "read val 0x%X", valueFromRFID);
       if(IsValueApproved(valueFromRFID)){
         UnlockOperation();
         
@@ -176,12 +176,14 @@ bool IsValueApproved(u32 readData){
 
     if( sizeof(logic.appruvedNumbers) > 0){
       u16 i;
-      for(i = 0; i < sizeof(logic.appruvedNumbers); i++){
+      for(i = 0; i < NUMBER_OF_APPRUVED_DATA; i++){
       	if(logic.appruvedNumbers[i] == readData){
+          printk(KERN_INFO "approvedNumbers[%d]= 0x%X, readData = 0x%X", i, logic.appruvedNumbers[i], readData);
       		shouldUnlock = true;
       		break;
       	}
       }
+      printk(KERN_INFO "Card is not approved!");
     }else{
     	printk(KERN_INFO "Buffer of approved numbers is empty");
     }

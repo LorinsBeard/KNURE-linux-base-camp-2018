@@ -1,31 +1,38 @@
 #!/bin/bash
 
-#Script to load Smart lock module to core
+#Script to load Smart lock module to the kernel
 
 
 while [ ! -z "$1"  ] ; do
         case $1 in
-           -h|--help)
-                 echo "-L|--lounch for install mode to system"
-		 echo "-C|--close  for remode mode from system"
+            -h|--help)
+                echo "-c, --clean           Clean dmesg"
+                echo "-s, --start           Start SmartLock"
+                echo "-p, --stop            Start SmartLock"
+                echo "-d, --dtb           Copy dtb to the /boot"
                 ;;
-            -L|--lounch)
-                echo "Lounch Smart lock"
+            -c|--clean)
+                echo "Cleaning dmesg..."
+                dmesg -C
+                ;;
+            -s|--start)
+                echo "Launch Smart lock"
                 insmod extGPIO.ko
-		insmod mfrc522.ko
-		insmod SmartLockControl.ko
+                insmod mfrc522.ko
+                insmod SmartLockControl.ko
+                echo "Done!"
                 ;;
-           -C|--close)
+            -p|--stop)
                 echo "Close Smart lock"
-		rmmod SmartLockControl.ko
-		rmmod mfrc522.ko
-		rmmod extGPIO.ko
+                rmmod SmartLockControl.ko
+                rmmod mfrc522.ko
+                rmmod extGPIO.ko
+                echo "Done!"
                 ;;
-            
+           -d|--dtb)
+                echo "Copying dtb..."
+                cp sun8i-h3-orangepi-one.dtb /boot/dtb-4.17.11-sunxi/
+                ;;
         esac
         shift
 done
-
-
-
-

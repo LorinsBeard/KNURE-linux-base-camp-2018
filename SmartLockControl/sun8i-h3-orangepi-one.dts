@@ -267,11 +267,10 @@
 
 		label = "MFRC522 contactless reader/writer driver";
 
-		spi-max-frequency = <24000000>;
-        buswidth = <8>;
-        
-		reset-gpios = <&pio 0 19 GPIO_ACTIVE_LOW>;
-		irq-gpios    = <&pio 0 7 GPIO_ACTIVE_LOW>;
+		spi-max-frequency = <5000000>;
+                
+		reset-gpios = <&pio 0 19 GPIO_ACTIVE_HIGH>;
+		irq-gpios    = <&pio 0 7 GPIO_ACTIVE_HIGH>;
 
 		status = "okay";
 	};
