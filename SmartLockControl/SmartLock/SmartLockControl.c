@@ -102,15 +102,11 @@ bool isButton;
 bool isLock;
 u32 interruptCount;
 
-// static const uint32_t keys[2] = {
-//   0x904eef79,
-//   0x2ae953a3
-// };
 
 uint32_t valueFromRFID = 0;
 
 
-int MainLogic(void *data){
+int MainTheard(void *data){
 
 	while(!kthread_should_stop()){
      
@@ -121,7 +117,8 @@ int MainLogic(void *data){
        OpenLock_btn();
     }
      
-    if((isCardPresent(&valueFromRFID))){
+    if( (isCardPresent(&valueFromRFID)) > 0){
+    	printk(KERN_INFO "read val %d", valueFromRFID);
       if(IsValueApproved(valueFromRFID)){
         UnlockOperation();
         
@@ -318,7 +315,7 @@ static int __init SmartLockControlInit(void) {
    	 goto error;   
   }
 
-  logic.kthread = kthread_run(MainLogic, NULL, "SmartLock");
+  logic.kthread = kthread_run(MainTheard, NULL, "SmartLock");
   if(logic.kthread)
       printk(KERN_INFO "Thread created successfully\n");
   else{
