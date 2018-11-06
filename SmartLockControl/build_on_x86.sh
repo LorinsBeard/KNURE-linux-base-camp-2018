@@ -2,7 +2,7 @@
 
 export CROSS_COMPILE=arm-linux-gnueabihf-
 
-SSH_NAME=
+SSH_NAME=opi
 BOARD_USER=armuser
 BOARD_IP=192.168.102.126
 

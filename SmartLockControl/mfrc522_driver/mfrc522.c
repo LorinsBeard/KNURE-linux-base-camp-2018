@@ -1209,11 +1209,12 @@ int isCardPresent(uint32_t *uid)
 
 		rfid->isThereCard = 0;
 
-		returnedValue = 0;
+		returnedValue = 1;
 	}
 
 	return returnedValue;
 }
+EXPORT_SYMBOL(isCardPresent);
 
 /*---------Module Functions definitions----------*/
 

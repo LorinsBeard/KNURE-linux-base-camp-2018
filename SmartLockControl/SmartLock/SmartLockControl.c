@@ -101,15 +101,11 @@ int returnedStatus;
 bool isButton;
 bool isLock;
 u32 interruptCount;
-/*static const uint8_t *keys[] = {
-  {0x90, 0x4e, 0xef, 0x79},
-  {0x2a, 0xe9, 0x53, 0xa3}
-}*/
 
-static const uint32_t keys[2] = {
-  0x904eef79,
-  0x2ae953a3
-};
+// static const uint32_t keys[2] = {
+//   0x904eef79,
+//   0x2ae953a3
+// };
 
 uint32_t valueFromRFID = 0;
 
@@ -125,7 +121,7 @@ int MainLogic(void *data){
        OpenLock_btn();
     }
      
-    if(!(isCardPresent(&valueFromRFID))){
+    if((isCardPresent(&valueFromRFID))){
       if(IsValueApproved(valueFromRFID)){
         UnlockOperation();
         
@@ -181,7 +177,7 @@ bool IsValueApproved(u32 readData){
     bool shouldUnlock;
 	  shouldUnlock= false;
 
-/*    if( sizeof(logic.appruvedNumbers) > 0){
+    if( sizeof(logic.appruvedNumbers) > 0){
       u16 i;
       for(i = 0; i < sizeof(logic.appruvedNumbers); i++){
       	if(logic.appruvedNumbers[i] == readData){
@@ -191,18 +187,7 @@ bool IsValueApproved(u32 readData){
       }
     }else{
     	printk(KERN_INFO "Buffer of approved numbers is empty");
-    }*/
-    u8 i;
-
-    for(i = 0; i < 2; i++)
-    {
-      if(readData == keys[i])
-      {
-        shouldUnlock = true;
-        break;
-      }
     }
-
 	return shouldUnlock;
 }
 
@@ -311,8 +296,8 @@ void ReadApprovedNum(void){
 
   printk(KERN_INFO "Read approved keys");
 
-  logic.appruvedNumbers[0] = 1;
-  logic.appruvedNumbers[1] = 5;
+  logic.appruvedNumbers[0] = 0x904eef79;
+  logic.appruvedNumbers[1] = 0x2ae953a3;
 }
 
 

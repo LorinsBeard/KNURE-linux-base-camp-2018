@@ -12,11 +12,13 @@ while [ ! -z "$1"  ] ; do
             -L|--lounch)
                 echo "Lounch Smart lock"
                 insmod extGPIO.ko
+		insmod mfrc522.ko
 		insmod SmartLockControl.ko
                 ;;
            -C|--close)
                 echo "Close Smart lock"
 		rmmod SmartLockControl.ko
+		rmmod mfrc522.ko
 		rmmod extGPIO.ko
                 ;;
             
