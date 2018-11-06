@@ -1,3 +1,4 @@
+#obj-$(CONFIG_MFRC_MODULE)     += mfrc522.o
 CONFIG_MODULE_SIG=n
 
 obj-m := mfrc522.o

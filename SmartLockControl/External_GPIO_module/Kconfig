@@ -1,0 +1,9 @@
+config external GPIO
+	bool "Control Pins for Smart Lock"
+	depends on SMART_LOCK
+        tristate "Module for work with external GPIO "
+
+        ---help---
+        This is module for control state of pins which use at Smart Lock project 
+   
+ 

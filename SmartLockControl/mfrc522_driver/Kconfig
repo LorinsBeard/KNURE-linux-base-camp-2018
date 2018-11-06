@@ -1,0 +1,12 @@
+if SPI
+
+config RFID_cotroller
+	bool "Control RFID module"
+	depends on SPI && SMART_LOCK 
+        tristate "Module for work with RFID module"
+
+        ---help---
+        This is module for control RFID module MFRC522 
+   
+ 
+  

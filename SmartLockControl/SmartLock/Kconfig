@@ -1,0 +1,11 @@
+
+config Smart_Lock
+	bool "Lounch Smart lock system"
+	depends SYSFS 
+        tristate "Module which contain main logic of program"
+
+        ---help---
+        This module contain main logic for  Smart Lock project
+   
+ 
+  

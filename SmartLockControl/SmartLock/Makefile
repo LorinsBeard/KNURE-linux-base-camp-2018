@@ -1,3 +1,4 @@
+#obj-$(CONFIG_SMART_LOCK)     += SmartLockControl.o
 CONFIG_MODULE_SIG=n
 
 obj-m :=SmartLockControl.o

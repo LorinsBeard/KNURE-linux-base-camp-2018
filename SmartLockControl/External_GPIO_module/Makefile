@@ -1,3 +1,4 @@
+#obj-$(CONFIG_EXT_GPIO)     += extGPIO.o
 CONFIG_MODULE_SIG=n
 
 obj-m :=extGPIO.o
