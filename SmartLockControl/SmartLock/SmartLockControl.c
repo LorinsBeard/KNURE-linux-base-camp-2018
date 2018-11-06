@@ -79,14 +79,21 @@ static const struct file_operations dev_fOps = {
 };
 //===========
 
+extern int isCardPresent(uint32_t *uid);
+extern int  GetInterruptCount(void);
+extern u8   SetLedMode(u8 led, u8 mode);
+extern void SetLockState(u8 state);
+
 
 void  LockOperation(struct timer_list *lockOperationTimer);
 void  UnlockOperation(void);
 void  ReadApprovedNum(void);
 void  WriteLog(bool isButton, bool isLocked);
 void  OpenLock_btn(void);
-bool  IsValueApproved(u16 readData);
+bool  IsValueApproved(u32 readData);
 int   ReadFromFile(void);
+
+
 
 
 int res;
@@ -94,7 +101,18 @@ int returnedStatus;
 bool isButton;
 bool isLock;
 u32 interruptCount;
-u16 valueFromRFID;
+/*static const uint8_t *keys[] = {
+  {0x90, 0x4e, 0xef, 0x79},
+  {0x2a, 0xe9, 0x53, 0xa3}
+}*/
+
+static const uint32_t keys[2] = {
+  0x904eef79,
+  0x2ae953a3
+};
+
+uint32_t valueFromRFID = 0;
+
 
 int MainLogic(void *data){
 
@@ -106,21 +124,18 @@ int MainLogic(void *data){
        logic.butOldInterruptCount = interruptCount;
        OpenLock_btn();
     }
-
      
-    if(isCardPresent(&valueFromRFID)){
-      if(valueFromRFID != 0){
-        if(IsValueApproved(valueFromRFID)){
-          UnlockOperation();
-          
-          isButton = false;
-          isLock   = false;
-          WriteLog(isButton, isLock);
-        }
-        valueFromRFID = 0;
-        printk("In kthread");
+    if(!(isCardPresent(&valueFromRFID))){
+      if(IsValueApproved(valueFromRFID)){
+        UnlockOperation();
+        
+        isButton = false;
+        isLock   = false;
+        WriteLog(isButton, isLock);
       }
-    }
+      valueFromRFID = 0;
+      printk("In kthread");
+    } 
 
     msleep(100);
 		schedule();
@@ -161,11 +176,12 @@ void UnlockOperation(void){
   mod_timer( &logic.lockOperationTimer, jiffies + msecs_to_jiffies(PERIOD_UNLOCK_TIME) );   
 }
 
-bool shouldUnlock;
-bool IsValueApproved(u16 readData){
+
+bool IsValueApproved(u32 readData){
+    bool shouldUnlock;
 	  shouldUnlock= false;
 
-    if( sizeof(logic.appruvedNumbers) > 0){
+/*    if( sizeof(logic.appruvedNumbers) > 0){
       u16 i;
       for(i = 0; i < sizeof(logic.appruvedNumbers); i++){
       	if(logic.appruvedNumbers[i] == readData){
@@ -175,6 +191,16 @@ bool IsValueApproved(u16 readData){
       }
     }else{
     	printk(KERN_INFO "Buffer of approved numbers is empty");
+    }*/
+    u8 i;
+
+    for(i = 0; i < 2; i++)
+    {
+      if(readData == keys[i])
+      {
+        shouldUnlock = true;
+        break;
+      }
     }
 
 	return shouldUnlock;
