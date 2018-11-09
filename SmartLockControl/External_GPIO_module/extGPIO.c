@@ -9,6 +9,7 @@
 #include <linux/of.h>
 #include <linux/of_device.h>
 #include <linux/interrupt.h>
+#include <linux/delay.h>
 
 #include "extGPIO.h"
 
@@ -69,6 +70,10 @@ void SetLockState(u8 state){
         gpiod_set_value(extDevices.lock.Lock_gpio, STATE_UNLOCK);
         printk("Lock state is UNLOCK");
     }
+    mdelay(50);
+    gpiod_set_value(extDevices.lock.Unlock_gpio, STATE_UNLOCK);
+    gpiod_set_value(extDevices.lock.Lock_gpio, STATE_UNLOCK);
+
 }
 EXPORT_SYMBOL(SetLockState);
 

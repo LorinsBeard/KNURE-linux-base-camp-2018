@@ -130,7 +130,7 @@ int MainTheard(void *data){
       printk("In kthread");
     } 
 
-    msleep(100);
+    msleep(300);
 		schedule();
 	}
 	return 0;
